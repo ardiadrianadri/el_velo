@@ -1,0 +1,21 @@
+{
+  "name": "el_velo",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/ardiadrianadri/el_velo#readme",
+  "bugs": {
+    "url": "https://github.com/ardiadrianadri/el_velo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ardiadrianadri/el_velo.git"
+  },
+  "author": "Adrian Ferreres Esteller",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.8"
+  }
+}
