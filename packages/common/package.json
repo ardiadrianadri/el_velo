@@ -1,0 +1,23 @@
+{
+  "name": "@el_velo/common",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "Adrian Ferreres Esteller",
+  "type": "module",
+  "main": "build/index.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.1.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "@vitest/coverage-v8": "^4.1.8",
+    "vitest": "^4.1.8"
+  }
+}
