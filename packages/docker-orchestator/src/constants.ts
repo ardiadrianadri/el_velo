@@ -1,4 +1,4 @@
-import { Code } from './types.js';
+import { Code } from '@el_velo/common';
 
 export const CODES: Record<string, Code> = {
     SUCCESS: {
@@ -21,4 +21,28 @@ export const CODES: Record<string, Code> = {
         id: '1004',
         description: 'Failed to execute command in the environment.',
     },
+    COMMAND_EXECUTION_TIMEOUT: {
+        id: '1005',
+        description: 'Command execution timed out.',
+    },
+    ENVIRONMENT_ALREADY_STARTED: {
+        id: '1006',
+        description: 'The environment has already been started.',
+    },
+    ENVIRONMENT_NOT_STARTED: {
+        id: '1007',
+        description: 'The environment has not been started.',
+    },
+    NETWORK_STOP_FAILED: {
+        id: '1008',
+        description: 'Failed to stop the network.',
+    },
+}
+
+export enum  EnvironmentState {
+    STOPPED = 'STOPPED',
+    STARTING = 'STARTING',
+    STARTED = 'STARTED',
+    STOPPING = 'STOPPING',
+    FAILED = 'FAILED',
 }

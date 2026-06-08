@@ -5,11 +5,13 @@
   "license": "ISC",
   "author": "Adrian Ferreres Esteller",
   "type": "module",
-  "main": "build/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "pino": "^10.3.1",

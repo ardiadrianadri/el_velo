@@ -5,7 +5,12 @@ import { Code } from './codes.js';
  * The Result object gets a Code object that describes the type of response
  * and a payload that contains the actual data of the response.
  */
-export interface Result<T> {
+export class Result<T> {
     code: Code;
     payload: T;
+
+    constructor(code: Code, payload: T) {
+        this.code = code;
+        this.payload = payload;
+    }
 }

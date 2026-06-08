@@ -16,21 +16,3 @@ export interface CommandResult {
     stderr: string;
     durationMs: number;
 } 
-
-export interface Environment {
-    services: Service[];
-    entrypoint: string;
-    start(): Promise<void>;
-    stop(): Promise<void>;
-    exec(command: string, options?: { timeoutMs?: number }): Promise<CommandResult>;
-}
-
-export interface Code {
-    id: string;
-    description: string;
-};
-
-export interface Result<T> {
-    code: Code;
-    payload: T;
-}

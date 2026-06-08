@@ -1,6 +1,5 @@
 import pino from 'pino';
 import { Code } from '../types/codes.js';
-import { VeloError } from '../types/veloError.js';
 
 /**
  * The Logger class is a wrapper around the pino logging library. 
