@@ -8,9 +8,12 @@ module.exports = tseslint.config(
   ...tseslint.configs.stylisticTypeChecked,
 
   {
+    files: ['**/*.ts'],
+
     languageOptions: {
       parserOptions: {
-        project: './tsconfig.json',
+        project: ['./packages/*/tsconfig.json'],
+        tsconfigRootDir: __dirname,
       },
     },
 
