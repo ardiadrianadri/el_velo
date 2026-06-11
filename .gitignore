@@ -4,3 +4,8 @@ dist
 .DS_Store
 .env
 *.tsbuildinfo
+
+
+.nx/cache
+.nx/workspace-data
+vitest.config.*.timestamp*

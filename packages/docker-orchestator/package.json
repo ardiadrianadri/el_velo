@@ -1,5 +1,5 @@
 {
-  "name": "@el_velo/docker-orquestator",
+  "name": "@el_velo/docker-orchestator",
   "version": "1.0.0",
   "description": "",
   "author": "Adrian Ferreres Esteller",
@@ -7,10 +7,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist"
+    "test": "nx vitest:test run",
+    "test:coverage": "nx vitest:test run --coverage",
+    "build": "tsc -b tsconfig.json",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "devDependencies": {
     "@types/node": "^25.9.2",

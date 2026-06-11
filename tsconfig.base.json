@@ -3,6 +3,7 @@
     "target": "ES2023",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "composite": true,
 
     "strict": true,
 
@@ -15,5 +16,10 @@
     "forceConsistentCasingInFileNames": true,
 
     "skipLibCheck": true,
+    "paths": {
+      "@el_velo/common": [
+        "./packages/common/src/index.ts"
+      ]
+    }
   }
 }
