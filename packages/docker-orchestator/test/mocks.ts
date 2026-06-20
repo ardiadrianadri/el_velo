@@ -23,7 +23,12 @@ export const mockContainerBuilder = {
     withEnvironment: vi.fn().mockReturnThis(),
     withNetwork: vi.fn().mockReturnThis(),
     withNetworkAliases: vi.fn().mockReturnThis(),
+    withBindMounts: vi.fn().mockReturnThis(),
     start: vi.fn()
 };
 
-export const networkStartMock = vi.fn()
+export const networkStartMock = vi.fn();
+
+export const pathValidationMock = {
+    validate: vi.fn()
+};

@@ -3,12 +3,12 @@ import { vi, beforeEach } from 'vitest';
 
 import { networkStartMock, mockContainerBuilder, mockNetwork, mockContainer, mockExec} from './mocks.js';
 
-function factoryMockContainerBuilder () {
+function factoryMockContainerBuilder (): any {
     return mockContainerBuilder;
 }
 
 vi.mock('testcontainers', () => ({
-    Network: class { start = networkStartMock },
+    Network: class { start = networkStartMock; },
     GenericContainer: factoryMockContainerBuilder
 }));
 

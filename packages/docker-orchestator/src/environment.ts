@@ -1,10 +1,16 @@
 
-import { Network, StartedNetwork, GenericContainer, StartedTestContainer, ExecResult } from "testcontainers";
-import { Code, Logger, Result, VeloError } from "@el_velo/common";
+import type { StartedNetwork, StartedTestContainer, ExecResult } from 'testcontainers';
+import { Network, GenericContainer } from 'testcontainers';
+import type { Code} from '@el_velo/common';
+import { Logger, Result, VeloError, PathValidation } from '@el_velo/common';
 
-import { Service, CommandResult } from './types.js';
+import type { Service, CommandResult, Volume } from './types.js';
 import { CODES, EnvironmentState } from './constants.js';
+import type { BindMode } from 'testcontainers/build/types.js';
 
+/**
+ * Class to start up a docker environment
+ */
 export class DockerEnvironment {
     public readonly services: Service[];
     public readonly entrypoint: string;
@@ -14,11 +20,23 @@ export class DockerEnvironment {
     private containers: Record<string, StartedTestContainer> = {};
     private _state: EnvironmentState = EnvironmentState.STOPPED;
 
-    get state() {
+    get state(): EnvironmentState {
         return this._state;
     }
 
-    constructor(services: Service[], entrypoint: string, private logger: Logger = new Logger()) {
+    /**
+     * Class constructor
+     * @param services List of containers configuration that conform the environment
+     * @param entrypoint Name of the main container where the command will run
+     * @param logger Object to write the log messages
+     * @param pathValidation Object to validate an OS path
+     */
+    constructor(
+        services: Service[], 
+        entrypoint: string, 
+        private logger: Logger = new Logger(), 
+        private pathValidation: PathValidation = new PathValidation()
+    ) {
         const MethodName = 'constructor';
         this.logger.info(DockerEnvironment.name, MethodName, 'Instantiating DockerEnvironment');
         if (!services.some(s => s.name === entrypoint)) {
@@ -30,6 +48,10 @@ export class DockerEnvironment {
         this.entrypoint = entrypoint;
     }
 
+    /**
+     * Method to start the environment
+     * @returns Returns a promise with the result 
+     */
     async start(): Promise<Result<void>> {
         const methodName = 'start';
         this.logger.info(DockerEnvironment.name, methodName, 'Starting environment');
@@ -44,7 +66,7 @@ export class DockerEnvironment {
 
         this.network = await new Network()
             .start()
-            .catch(err => {
+            .catch((err: Error) => {
                 this.changeState(EnvironmentState.FAILED);
                 this.logger.error(
                     DockerEnvironment.name,
@@ -56,16 +78,10 @@ export class DockerEnvironment {
             });
 
         const containerPromises = this.services.map(service => {
-            return new GenericContainer(service.image)
-                .withCommand(service.command || [])
-                .withExposedPorts(...(service.exposePorts || []))
-                .withEnvironment(service.environment || {})
-                .withNetwork(this.network!)
-                .withNetworkAliases(service.name)
-                .start()
+            return this.configContainer(service, this.network)
                 .then(container => {
                     this.containers[service.name] = container;
-                })
+                });
         });
 
         return Promise.all(containerPromises)
@@ -73,7 +89,7 @@ export class DockerEnvironment {
                 this.changeState(EnvironmentState.STARTED); 
                 return new Result<void>(CODES.SUCCESS, undefined);
             })
-            .catch(async err => {
+            .catch(async (err: Error) => {
                 this.logger.error(
                     DockerEnvironment.name,
                     methodName,
@@ -86,6 +102,10 @@ export class DockerEnvironment {
             });
     }
 
+    /**
+     * Method to stop the environment
+     * @returns returns a promise with the result
+     */
     async stop(): Promise<Result<void>> {
         const methodName = 'stop';
         this.logger.info(DockerEnvironment.name, methodName, 'Stoping environment');
@@ -101,13 +121,13 @@ export class DockerEnvironment {
 
                 if (failures.length > 0) {
                     this.changeState(EnvironmentState.FAILED);
-                    const error = new VeloError(CODES.SERVICE_STOP_FAILURE, failures[0].reason);
+                    const error = new VeloError(CODES.SERVICE_STOP_FAILURE, (failures[0].reason as string));
                     this.logger.error(DockerEnvironment.name, methodName, error);
                     throw error;
                 }
 
                 if (this.network) {
-                    await this.network.stop().catch(err => {
+                    await this.network.stop().catch((err: Error) => {
                         this.logger.error(
                             DockerEnvironment.name,
                             methodName,
@@ -123,9 +143,15 @@ export class DockerEnvironment {
                 this.network = null;
                 this.containers = {};
                 return new Result<void>(CODES.SUCCESS, undefined);
-            })
+            });
     }
 
+    /**
+     * Method to execute a command in the main container of the environment
+     * @param command Array of string that represent the command to execute
+     * @param options [Optional] Object with configuration parameters for the command execution
+     * @returns Return a promise with the result of the command execution
+     */
     async exec(command: string[], options?: { timeoutMs?: number }): Promise<Result<CommandResult>> {
         const methodName = 'exec';
         this.logger.info(DockerEnvironment.name, methodName, `Executing command ${command.join(' ')} in ${this.entrypoint} container`);
@@ -139,12 +165,6 @@ export class DockerEnvironment {
             throw error;
         }
 
-        if (!container) {
-            const error = new VeloError(CODES.ENTRYPOINT_NOT_FOUND, `Entrypoint container '${this.entrypoint}' not found.`);
-            this.logger.error(DockerEnvironment.name, methodName, error);
-            throw error;
-        }
-
         const startTime = Date.now();
         const execPromise = container.exec(command)
             .then(result => this.doSuccessResult(result, startTime, timeoutHandle));
@@ -152,26 +172,90 @@ export class DockerEnvironment {
         if (options?.timeoutMs) {
             const timeoutPromise = new Promise<Result<CommandResult>>((_, reject) => {
                 timeoutHandle = setTimeout(() => {
+                    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
                     const error = new VeloError(CODES.COMMAND_EXECUTION_TIMEOUT, `Command execution timed out after ${options.timeoutMs} ms.`);
                     reject(error);
                 }, options.timeoutMs);
             });
 
             return Promise.race([execPromise, timeoutPromise])
-                .catch(err => {
+                .catch((err: Error) => {
                     const code = err instanceof VeloError ? err.code : CODES.COMMAND_EXECUTION_FAILURE;
                     this.doFailedResult(methodName, err, timeoutHandle, code);
                     throw err;
                 });
         }
 
-        return execPromise.catch(err => {
+        return execPromise.catch((err: Error) => {
                 this.doFailedResult(methodName, err, timeoutHandle, CODES.COMMAND_EXECUTION_FAILURE);
                 throw err;
             });
     }
 
-    private doFailedResult(methodName: string, error: Error, timeHandler?: NodeJS.Timeout, code?: Code) {
+    /**
+     * Method to configure a volumen in the environment
+     * @param volumen String that represents de volumen mapping between the host and the container (<path from the host>:<path from the container>:<mode>)
+     * @returns Return a Volume object that represent the volume for the container
+     */
+    private async setVolumen (volumen: string): Promise<Volume> {
+        const methodName = 'setVolumen';
+        this.logger.debug(DockerEnvironment.name, methodName, `Setting up containers volume ${volumen}`);
+        const volumenParts = volumen.split(':');
+        const allowedModes = ['rw', 'ro', 'z', 'Z'];
+
+        if (volumenParts.length < 2) {
+            const error = new VeloError(CODES.INVALID_VOLUME_CONFIGURATION, 'The volumen configuration must follow the next schema: {local source}:{container destination}:{optional mode}');
+            this.logger.error(DockerEnvironment.name, methodName, error);
+            throw error;
+        }
+
+        if (volumenParts[2] && !allowedModes.some(m => m === volumenParts[2])) {
+            const error = new VeloError(CODES.INVALID_VOLUME_MODE, `${volumenParts[2]} is not a valid mode`);
+            this.logger.error(DockerEnvironment.name, methodName, error);
+            throw error;
+        }
+
+        if (!await this.pathValidation.validate(volumenParts[0])) {
+            const error = new VeloError(CODES.INVALID_VOLUME_PATH, `${volumenParts[0]} is not a valid path`);
+            this.logger.error(DockerEnvironment.name, methodName, error);
+            throw error;
+        }
+
+        if (!await this.pathValidation.validate(volumenParts[1], false)) {
+            const error = new VeloError(CODES.INVALID_VOLUME_PATH, `${volumenParts[1]} is not a valid path`);
+            this.logger.error(DockerEnvironment.name, methodName, error);
+            throw error;
+        }
+
+        return {
+            source: volumenParts[0],
+            target: volumenParts[1],
+            mode: (volumenParts[2] as BindMode)
+        };
+    }
+
+    private async configContainer(service: Service, network: StartedNetwork | null): Promise<StartedTestContainer> {
+        const methodName = 'configContainer';
+        this.logger.debug(DockerEnvironment.name, methodName, 'Configuring docker environment');
+        const genericContainer = new GenericContainer(service.image)
+            .withCommand(service.command ?? [])
+            .withExposedPorts(...(service.exposePorts ?? []))
+            .withEnvironment(service.environment ?? {});
+
+        if (service.volumes && service.volumes.length > 0) {
+            const volumes = await Promise.all(service.volumes.map(this.setVolumen.bind(this)));
+            genericContainer.withBindMounts(volumes);
+        }
+
+        if (network) {
+            genericContainer.withNetwork(network)
+            .withNetworkAliases(service.name);
+        }
+
+        return genericContainer.start();
+    }
+
+    private doFailedResult(methodName: string, error: Error, timeHandler?: NodeJS.Timeout, code?: Code): void {
         const mName = 'doFailedResult';
         this.logger.debug(DockerEnvironment.name, mName, `Treating failer in method ${methodName}`);
         if (timeHandler) {
@@ -204,7 +288,7 @@ export class DockerEnvironment {
         });
     }
 
-    private changeState(newState: EnvironmentState) {
+    private changeState(newState: EnvironmentState): void {
         const methodName = 'changeState';
         this.logger.info(DockerEnvironment.name, methodName, `Changing environment state from ${this._state} to ${newState}`);
 

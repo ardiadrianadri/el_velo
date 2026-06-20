@@ -1,4 +1,5 @@
-import { WaitStrategy } from "testcontainers";
+import type { WaitStrategy } from 'testcontainers';
+import type { BindMode } from 'testcontainers/build/types.js';
 
 export interface Service {
     name: string;
@@ -15,4 +16,10 @@ export interface CommandResult {
     stdout: string;
     stderr: string;
     durationMs: number;
-} 
+}
+
+export interface Volume {
+    source: string,
+    target: string,
+    mode?: BindMode
+}

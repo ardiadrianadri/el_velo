@@ -1,4 +1,4 @@
-import { Code } from '@el_velo/common';
+import type { Code } from '@el_velo/common';
 
 export const CODES: Record<string, Code> = {
     SUCCESS: {
@@ -37,7 +37,19 @@ export const CODES: Record<string, Code> = {
         id: '1008',
         description: 'Failed to stop the network.',
     },
-}
+    INVALID_VOLUME_CONFIGURATION: {
+        id: '1009',
+        description: 'Wrong volumen specification'
+    },
+    INVALID_VOLUME_MODE: {
+        id: '1010',
+        description: 'The volumen mode only accept as value "rw", "ro", "z" or "Z"'
+    },
+    INVALID_VOLUME_PATH: {
+        id: '1011',
+        description: 'The provided path is not valid'
+    }
+};
 
 export enum  EnvironmentState {
     STOPPED = 'STOPPED',
@@ -46,3 +58,5 @@ export enum  EnvironmentState {
     STOPPING = 'STOPPING',
     FAILED = 'FAILED',
 }
+
+export const DEFAULT_NETWORK = 'default_network';

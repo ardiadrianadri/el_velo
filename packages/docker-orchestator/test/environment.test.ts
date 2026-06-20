@@ -3,7 +3,15 @@ import { VeloError } from '@el_velo/common';
 
 import { DockerEnvironment } from '../src/environment.js';
 import { CODES, EnvironmentState } from '../src/constants.js';
-import { mockContainer, mockContainerBuilder, mockExec, mockLogger, mockNetwork, networkStartMock } from './mocks.js';
+import {
+    mockContainer,
+    mockContainerBuilder,
+    mockExec,
+    mockLogger,
+    mockNetwork,
+    networkStartMock,
+    pathValidationMock
+} from './mocks.js';
 
 describe('DockerEnvironment test', () => {
     let env: DockerEnvironment;
@@ -12,7 +20,7 @@ describe('DockerEnvironment test', () => {
             [{ name: 'app', image: 'node' }],
             'app',
             mockLogger as any
-        )
+        );
     });
 
     describe('constructor', () => {
@@ -62,6 +70,77 @@ describe('DockerEnvironment test', () => {
             expect(env.state).toBe(EnvironmentState.FAILED);
         });
 
+        it('should fail when the volumen string does not have the right format', async () => {
+            const env = new DockerEnvironment(
+                [{ name: 'app', image: 'node', volumes: ['test/volume/path'] }],
+                'app',
+                mockLogger as any,
+                pathValidationMock as any
+            );
+
+            await expect(env.start()).rejects.toThrow(VeloError);
+        });
+
+        it('should fail when the volumen has an invalid mode', async () => {
+            const env = new DockerEnvironment(
+                [{ name: 'app', image: 'node', volumes: ['/local/path/test:/container/path/test:pp'] }],
+                'app',
+                mockLogger as any,
+                pathValidationMock as any
+            );
+
+            await expect(env.start()).rejects.toThrow(VeloError);
+        });
+
+        it('should fail when the local path does not exist', async () => {
+            pathValidationMock.validate.mockResolvedValueOnce(false);
+            const env = new DockerEnvironment(
+                [{ name: 'app', image: 'node', volumes: ['/local/path/test:/container/path/test'] }],
+                'app',
+                mockLogger as any,
+                pathValidationMock as any
+            );
+            
+            await expect(env.start()).rejects.toThrow(VeloError);
+        });
+
+        it('should fail when the containr path is invalid', async () => {
+            pathValidationMock.validate.mockImplementation((path, local = true) => {
+                return Promise.resolve(local);
+            });
+
+            const env = new DockerEnvironment(
+                [{ name: 'app', image: 'node', volumes: ['/local/path/test:/container/path/test'] }],
+                'app',
+                mockLogger as any,
+                pathValidationMock as any
+            );
+
+            await expect(env.start()).rejects.toThrow(VeloError);
+        });
+
+        it('should setup a volume in the container', async () => {
+            const expectedVolume = {
+                source: '/local/path/test',
+                target: '/container/path/test',
+                mode: 'rw'
+            };
+
+            pathValidationMock.validate.mockResolvedValue(true);
+
+            const env = new DockerEnvironment(
+                [{ name: 'app', image: 'node', volumes: [`${expectedVolume.source}:${expectedVolume.target}:${expectedVolume.mode}`] }],
+                'app',
+                mockLogger as any,
+                pathValidationMock as any
+            );
+
+            await env.start();
+
+            expect(env.state).toBe(EnvironmentState.STARTED);
+            expect(mockContainerBuilder.withBindMounts).toHaveBeenLastCalledWith([expectedVolume]);
+        });
+
         it('should rollback when container start fails', async () => {
             const errorMsg = 'container error';
             mockContainerBuilder.start.mockRejectedValueOnce(new Error(errorMsg));
@@ -95,7 +174,7 @@ describe('DockerEnvironment test', () => {
 
             await env.start();
             await expect(env.stop()).rejects.toThrow();
-            expect(env.state).toBe(EnvironmentState.FAILED)
+            expect(env.state).toBe(EnvironmentState.FAILED);
         });
 
         it('should fail when a container stop fails', async () => {
@@ -119,7 +198,7 @@ describe('DockerEnvironment test', () => {
 
             expect(result.code).toBe(CODES.SUCCESS);
 
-            expect(result.payload?.stdout).toBe('ok');
+            expect(result.payload.stdout).toBe('ok');
 
             expect(mockExec).toHaveBeenCalledWith([
                 'echo',
@@ -128,7 +207,7 @@ describe('DockerEnvironment test', () => {
         });
 
         it('should fail when environment not started', async () => {
-            await expect(env.exec(['ls','-l'])).rejects.throws(VeloError)
+            await expect(env.exec(['ls', '-l'])).rejects.throws(VeloError);
         });
 
         it('should fail when the command execution fails', async () => {
@@ -141,15 +220,15 @@ describe('DockerEnvironment test', () => {
         });
 
         it('should throw timeout error', async () => {
-            vi.useFakeTimers()
+            vi.useFakeTimers();
             mockExec.mockImplementationOnce(() => {
-                return new Promise(() => {});
+                return new Promise(() => { /* empty */ });
             });
 
             await env.start();
 
             const promise = env.exec(['ls', '-l'], { timeoutMs: 1000 });
-            await vi.advanceTimersByTime(1000);
+            vi.advanceTimersByTime(1000);
 
             await expect(promise).rejects.toThrow(VeloError);
         });
