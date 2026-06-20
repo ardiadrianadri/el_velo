@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import pino from 'pino';
-import { Code } from '../types/codes.js';
+import type { Code } from '../types/codes.js';
 
 /**
  * The Logger class is a wrapper around the pino logging library. 
@@ -12,7 +13,7 @@ export class Logger {
 
     constructor() {
         this.logWriter = pino({
-            level: process.env.LOG_LEVEL || 'info',
+            level: process.env.LOG_LEVEL ?? 'info',
             transport: {
                 target: 'pino-pretty',
                 options: {
@@ -30,7 +31,8 @@ export class Logger {
      * @param level log level (trace, debug, info)
      * @param messsage log message
      */
-    private writeLog(className: string, methodName: string, level: string, messsage: string) {
+    private writeLog(className: string, methodName: string, level: string, messsage: string): void {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         (this.logWriter as any)[level]({ className, methodName }, messsage);
     }
 
@@ -40,7 +42,7 @@ export class Logger {
      * @param methodName Name of the method where the log is being written
      * @param message log message
      */
-    trace(className: string, methodName: string, message: string) {
+    trace(className: string, methodName: string, message: string): void {
         this.writeLog(className, methodName, 'trace', message);
     }
 
@@ -50,7 +52,7 @@ export class Logger {
      * @param methodName Name of the method where the log is being written
      * @param message log message
      */
-    debug(className: string, methodName: string, message: string) {
+    debug(className: string, methodName: string, message: string): void {
         this.writeLog(className, methodName, 'debug', message);
     }
 
@@ -60,7 +62,7 @@ export class Logger {
      * @param methodName Name of the method where the log is being written
      * @param message log message
      */
-    info(className: string, methodName: string, message: string) {
+    info(className: string, methodName: string, message: string): void {
         this.writeLog(className, methodName, 'info', message);
     }
 
@@ -71,7 +73,7 @@ export class Logger {
      * @param message log message
      * @param code Code object that describes the type of warning.
      */
-    warn(className: string, methodName: string, message: string, code: Code) {
+    warn(className: string, methodName: string, message: string, code: Code): void {
         this.logWriter.warn({ className, methodName, type: { ...code }}, message);
     }
 
@@ -82,7 +84,8 @@ export class Logger {
      * @param error VeloError object containing error details
      * @param code Code object that describes the type of error.
      */
-    error(className: string, methodName: string, error: Error, code?: Code) {
+    error(className: string, methodName: string, error: Error, code?: Code): void {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.logWriter.error({ className, methodName, err: error, type: code ? {...code} : (error as any)?.code ? {...(error as any).code } : undefined });
     }
 }
