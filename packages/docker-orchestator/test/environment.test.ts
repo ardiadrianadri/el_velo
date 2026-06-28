@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { VeloError } from '@el_velo/common';
 
 import { DockerEnvironment } from '../src/environment.js';
@@ -9,6 +9,8 @@ import {
     mockExec,
     mockLogger,
     mockNetwork,
+    mockSocatContainer,
+    mockSocatContainerBuilder,
     networkStartMock,
     pathValidationMock,
     dockerServiceValidator
@@ -25,6 +27,10 @@ describe('DockerEnvironment test', () => {
             dockerServiceValidator as any
             
         );
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     describe('constructor', () => {
@@ -150,6 +156,50 @@ describe('DockerEnvironment test', () => {
             expect(mockContainerBuilder.withBindMounts).toHaveBeenLastCalledWith([expectedVolume]);
         });
 
+        it('should expose a URL for a mapped port', async () => {
+            const env = new DockerEnvironment(
+                [{
+                    name: 'app',
+                    image: 'node',
+                    exposePorts: ['3000'],
+                    portsMapping: ['8080:3000']
+                }],
+                'app',
+                mockLogger as any,
+                pathValidationMock as any,
+                dockerServiceValidator as any
+            );
+
+            const result = await env.start();
+
+            expect(mockContainerBuilder.withExposedPorts).toHaveBeenCalledWith([3000]);
+            expect(mockSocatContainerBuilder.withNetwork).toHaveBeenCalledWith(mockNetwork);
+            expect(mockSocatContainerBuilder.withTarget).toHaveBeenCalledWith(8080, 'app', 3000);
+            expect(mockSocatContainer.getMappedPort).toHaveBeenCalledWith(3000);
+            expect(result.payload).toEqual([{ url: 'http://localhost:8080' }]);
+        });
+
+        it('should fail when a mapped port is not exposed', async () => {
+            const env = new DockerEnvironment(
+                [{
+                    name: 'app',
+                    image: 'node',
+                    exposePorts: ['3000'],
+                    portsMapping: ['8080:4000']
+                }],
+                'app',
+                mockLogger as any,
+                pathValidationMock as any,
+                dockerServiceValidator as any
+            );
+
+            await expect(env.start()).rejects.toMatchObject({
+                code: CODES.MAPPED_PORT_IS_NOT_EXPOSED
+            });
+            expect(mockSocatContainerBuilder.start).not.toHaveBeenCalled();
+            expect(env.state).toBe(EnvironmentState.FAILED);
+        });
+
         it('should rollback when container start fails', async () => {
             const errorMsg = 'container error';
             mockContainerBuilder.start.mockRejectedValueOnce(new Error(errorMsg));
@@ -240,6 +290,16 @@ describe('DockerEnvironment test', () => {
             vi.advanceTimersByTime(1000);
 
             await expect(promise).rejects.toThrow(VeloError);
+        });
+
+        it('should clear the timeout when the command finishes in time', async () => {
+            vi.useFakeTimers();
+            await env.start();
+
+            const result = await env.exec(['echo', 'hello'], { timeoutMs: 1000 });
+
+            expect(result.code).toBe(CODES.SUCCESS);
+            expect(vi.getTimerCount()).toBe(0);
         });
     });
 });

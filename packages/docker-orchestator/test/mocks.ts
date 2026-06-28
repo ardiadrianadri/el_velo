@@ -27,6 +27,17 @@ export const mockContainerBuilder = {
     start: vi.fn()
 };
 
+export const mockSocatContainer = {
+    getMappedPort: vi.fn(),
+    getHost: vi.fn()
+};
+
+export const mockSocatContainerBuilder = {
+    withNetwork: vi.fn().mockReturnThis(),
+    withTarget: vi.fn().mockReturnThis(),
+    start: vi.fn()
+};
+
 export const networkStartMock = vi.fn();
 
 export const pathValidationMock = {

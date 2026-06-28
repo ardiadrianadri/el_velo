@@ -6,16 +6,23 @@ import {
     mockContainerBuilder,
     mockNetwork,
     mockContainer,
-    mockExec
+    mockExec,
+    mockSocatContainer,
+    mockSocatContainerBuilder
 } from './mocks.js';
 
 function factoryMockContainerBuilder (): any {
     return mockContainerBuilder;
 }
 
+function factoryMockSocatContainerBuilder (): any {
+    return mockSocatContainerBuilder;
+}
+
 vi.mock('testcontainers', () => ({
     Network: class { start = networkStartMock; },
-    GenericContainer: factoryMockContainerBuilder
+    GenericContainer: factoryMockContainerBuilder,
+    SocatContainer: factoryMockSocatContainerBuilder
 }));
 
 beforeEach(() => {
@@ -31,4 +38,7 @@ beforeEach(() => {
     });
 
     mockContainerBuilder.start.mockResolvedValue(mockContainer);
+    mockSocatContainerBuilder.start.mockResolvedValue(mockSocatContainer);
+    mockSocatContainer.getMappedPort.mockReturnValue(8080);
+    mockSocatContainer.getHost.mockReturnValue('localhost');
 });

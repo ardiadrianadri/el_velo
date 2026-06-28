@@ -143,4 +143,12 @@ describe('Validator', () => {
         expect(result.valid).toBe(true);
         expect(result.errors.length).toBe(0);
     });
+
+    it('should an array of validations if we pass an array of services', () => {
+        const services = [service, service];
+
+        const results = validator.validateSerivces(services);
+        expect(results.length).toBe(services.length);
+        expect(results.some(r => !r.valid)).toBe(false);
+    });
 });
