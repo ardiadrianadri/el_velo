@@ -32,3 +32,9 @@ export const networkStartMock = vi.fn();
 export const pathValidationMock = {
     validate: vi.fn()
 };
+
+export const dockerServiceValidator = {
+    validateSerivces: vi.fn().mockReturnValue([
+        { valid: true }
+    ])
+};

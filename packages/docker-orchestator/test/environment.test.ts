@@ -10,7 +10,8 @@ import {
     mockLogger,
     mockNetwork,
     networkStartMock,
-    pathValidationMock
+    pathValidationMock,
+    dockerServiceValidator
 } from './mocks.js';
 
 describe('DockerEnvironment test', () => {
@@ -19,7 +20,10 @@ describe('DockerEnvironment test', () => {
         env = new DockerEnvironment(
             [{ name: 'app', image: 'node' }],
             'app',
-            mockLogger as any
+            mockLogger as any,
+            pathValidationMock as any,
+            dockerServiceValidator as any
+            
         );
     });
 
@@ -28,7 +32,9 @@ describe('DockerEnvironment test', () => {
             const env = new DockerEnvironment(
                 [{ name: 'app', image: 'node:22' }],
                 'app',
-                mockLogger as any
+                mockLogger as any,
+                pathValidationMock as any,
+                dockerServiceValidator as any
             );
 
             expect(env.entrypoint).toBe('app');
@@ -40,7 +46,29 @@ describe('DockerEnvironment test', () => {
                 new DockerEnvironment(
                     [{ name: 'db', image: 'postgres' }],
                     'app',
-                    mockLogger as any
+                    mockLogger as any,
+                    pathValidationMock as any,
+                    dockerServiceValidator as any
+                );
+            }).toThrow(VeloError);
+        });
+
+        it('should throw if the service configuration is not valid', () => {
+            dockerServiceValidator.validateSerivces.mockReturnValueOnce([
+                {
+                    valid: false,
+                    errors: [{
+                        error: 'Test error'
+                    }]
+                }
+            ]);
+            expect(() => {
+                new DockerEnvironment(
+                    [{ name: 'app', image: 'node:22' }],
+                    'app',
+                    mockLogger as any,
+                    pathValidationMock as any,
+                    dockerServiceValidator as any
                 );
             }).toThrow(VeloError);
         });
@@ -70,37 +98,16 @@ describe('DockerEnvironment test', () => {
             expect(env.state).toBe(EnvironmentState.FAILED);
         });
 
-        it('should fail when the volumen string does not have the right format', async () => {
-            const env = new DockerEnvironment(
-                [{ name: 'app', image: 'node', volumes: ['test/volume/path'] }],
-                'app',
-                mockLogger as any,
-                pathValidationMock as any
-            );
-
-            await expect(env.start()).rejects.toThrow(VeloError);
-        });
-
-        it('should fail when the volumen has an invalid mode', async () => {
-            const env = new DockerEnvironment(
-                [{ name: 'app', image: 'node', volumes: ['/local/path/test:/container/path/test:pp'] }],
-                'app',
-                mockLogger as any,
-                pathValidationMock as any
-            );
-
-            await expect(env.start()).rejects.toThrow(VeloError);
-        });
-
         it('should fail when the local path does not exist', async () => {
             pathValidationMock.validate.mockResolvedValueOnce(false);
             const env = new DockerEnvironment(
                 [{ name: 'app', image: 'node', volumes: ['/local/path/test:/container/path/test'] }],
                 'app',
                 mockLogger as any,
-                pathValidationMock as any
+                pathValidationMock as any,
+                dockerServiceValidator as any
             );
-            
+
             await expect(env.start()).rejects.toThrow(VeloError);
         });
 
@@ -113,7 +120,8 @@ describe('DockerEnvironment test', () => {
                 [{ name: 'app', image: 'node', volumes: ['/local/path/test:/container/path/test'] }],
                 'app',
                 mockLogger as any,
-                pathValidationMock as any
+                pathValidationMock as any,
+                dockerServiceValidator as any
             );
 
             await expect(env.start()).rejects.toThrow(VeloError);
@@ -132,7 +140,8 @@ describe('DockerEnvironment test', () => {
                 [{ name: 'app', image: 'node', volumes: [`${expectedVolume.source}:${expectedVolume.target}:${expectedVolume.mode}`] }],
                 'app',
                 mockLogger as any,
-                pathValidationMock as any
+                pathValidationMock as any,
+                dockerServiceValidator as any
             );
 
             await env.start();

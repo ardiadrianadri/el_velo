@@ -1,4 +1,4 @@
-import type { WaitStrategy } from 'testcontainers';
+import type { StartedSocatContainer, StartedTestContainer, WaitStrategy } from 'testcontainers';
 import type { BindMode } from 'testcontainers/build/types.js';
 
 export interface Service {
@@ -6,7 +6,8 @@ export interface Service {
     image: string;
     environment?: Record<string, string>;
     command?: string[];
-    exposePorts?: number[];
+    exposePorts?: string[];
+    portsMapping?: string[];
     volumes?: string[];
     waitStrategy?: WaitStrategy;
 }
@@ -22,4 +23,18 @@ export interface Volume {
     source: string,
     target: string,
     mode?: BindMode
+}
+
+export interface RunningContainer {
+    constainer: StartedTestContainer,
+    portsMapping: PortMapping[]
+}
+
+export interface ExposedUrl {
+    url: string;
+}
+
+export interface PortMapping {
+    exposedPort: number,
+    soc: StartedSocatContainer
 }

@@ -1,7 +1,13 @@
 // File with the setup for the tests of the docker-orchestrator package
 import { vi, beforeEach } from 'vitest';
 
-import { networkStartMock, mockContainerBuilder, mockNetwork, mockContainer, mockExec} from './mocks.js';
+import {
+    networkStartMock,
+    mockContainerBuilder,
+    mockNetwork,
+    mockContainer,
+    mockExec
+} from './mocks.js';
 
 function factoryMockContainerBuilder (): any {
     return mockContainerBuilder;
