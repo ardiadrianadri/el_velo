@@ -9,3 +9,4 @@ dist
 .nx/cache
 .nx/workspace-data
 vitest.config.*.timestamp*
+.nx/migrate-runs

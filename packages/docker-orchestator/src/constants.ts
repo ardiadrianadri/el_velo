@@ -49,6 +49,14 @@ export const CODES: Record<string, Code> = {
     INVALID_SERVICE_CONFIGURATION: {
         id: '1015',
         description: 'The s'
+    },
+    SOCAT_STOP_FAILED: {
+        id: '1016',
+        description: 'Failed to stop the socat container.'
+    },
+    CONTAINER_STOP_FAILED: {
+        id: '1017',
+        description: 'Failed to stop the container.'
     }
 };
 

@@ -1,7 +1,8 @@
 
-import type { StartedNetwork, StartedTestContainer, ExecResult } from 'testcontainers';
+import type { StartedNetwork, StartedTestContainer, ExecResult, StartedSocatContainer } from 'testcontainers';
 import { Network, GenericContainer, SocatContainer } from 'testcontainers';
-import type { Code} from '@el_velo/common';
+import type { Code } from '@el_velo/common';
+import { join } from 'node:path';
 import { Logger, Result, VeloError, PathValidation } from '@el_velo/common';
 
 import type { Service, CommandResult, Volume, ExposedUrl, RunningContainer, PortMapping } from './types.js';
@@ -19,6 +20,7 @@ export class DockerEnvironment {
 
     private network: StartedNetwork | null = null;
     private containers: Record<string, StartedTestContainer> = {};
+    private socatContainers: Record<string, StartedSocatContainer> = {};
     private _state: EnvironmentState = EnvironmentState.STOPPED;
 
     get state(): EnvironmentState {
@@ -142,8 +144,32 @@ export class DockerEnvironment {
         }
 
         this.changeState(EnvironmentState.STOPPING);
-        return Promise.allSettled(Object.values(this.containers).map(container => container.stop()))
-            .then(async (results) => {
+        return Promise.allSettled(Object.keys(this.containers).map(async containerName => {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            if (this.socatContainers[containerName]) {
+                await this.socatContainers[containerName].stop().catch((err: Error) => {
+                    this.logger.error(
+                        DockerEnvironment.name,
+                        methodName,
+                        err,
+                        CODES.SOCAT_STOP_FAILED,
+                    );
+                    this.changeState(EnvironmentState.FAILED);
+                    throw err;
+                });
+            }
+
+            return this.containers[containerName].stop().catch((err: Error) => {
+                this.logger.error(
+                    DockerEnvironment.name,
+                    methodName,
+                    err,
+                    CODES.CONTAINER_STOP_FAILED,
+                );
+                this.changeState(EnvironmentState.FAILED);
+                throw err;
+            });
+        })).then(async (results) => {
                 const failures = results.filter(r => r.status === 'rejected');
 
                 if (failures.length > 0) {
@@ -227,7 +253,9 @@ export class DockerEnvironment {
     private async setVolumen (volumen: string): Promise<Volume> {
         const methodName = 'setVolumen';
         this.logger.debug(DockerEnvironment.name, methodName, `Setting up containers volume ${volumen}`);
-        const volumenParts = volumen.split(':');
+        const volumenParts = volumen.split(':').map((part, index) => {
+            return index === 2 ? part.trim() : join(process.cwd(), part.trim());
+        });
 
         if (!await this.pathValidation.validate(volumenParts[0])) {
             const error = new VeloError(CODES.INVALID_VOLUME_PATH, `${volumenParts[0]} is not a valid path`);
@@ -260,14 +288,14 @@ export class DockerEnvironment {
             throw error;
         }
 
-        const soc = await new SocatContainer()
+        this.socatContainers[containerName] = await new SocatContainer()
             .withNetwork(network)
             .withTarget(Number.parseInt(localPort), containerName, Number.parseInt(containerPort))
             .start();
 
         return {
-            exposedPort: Number.parseInt(containerPort),
-            soc
+            exposedPort: Number.parseInt(localPort),
+            soc: this.socatContainers[containerName]
         };
             
     }
@@ -280,7 +308,7 @@ export class DockerEnvironment {
             : [];
         const genericContainer = new GenericContainer(service.image)
             .withCommand(service.command ?? [])
-            .withExposedPorts(ports as any)
+            .withExposedPorts(...ports)
             .withEnvironment(service.environment ?? {});
 
         let socs: PortMapping[] = [];
@@ -295,7 +323,13 @@ export class DockerEnvironment {
             .withNetworkAliases(service.name);
         }
 
-        if (network && service.portsMapping && service.portsMapping.length > 0 && service.exposePorts && service.exposePorts.length > 0) {
+        if (
+            network && 
+            service.portsMapping && 
+            service.portsMapping.length > 0 && 
+            service.exposePorts && service.exposePorts.length > 0 &&
+            service.name === this.entrypoint
+        ) {
             const ports = service.exposePorts.map(num => Number.parseInt(num));
             socs = await Promise.all(service.portsMapping.map(async pm => await this.configPortsMapping(pm, network, ports, this.entrypoint)));
             

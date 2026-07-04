@@ -172,10 +172,10 @@ describe('DockerEnvironment test', () => {
 
             const result = await env.start();
 
-            expect(mockContainerBuilder.withExposedPorts).toHaveBeenCalledWith([3000]);
+            expect(mockContainerBuilder.withExposedPorts).toHaveBeenCalledWith(3000);
             expect(mockSocatContainerBuilder.withNetwork).toHaveBeenCalledWith(mockNetwork);
             expect(mockSocatContainerBuilder.withTarget).toHaveBeenCalledWith(8080, 'app', 3000);
-            expect(mockSocatContainer.getMappedPort).toHaveBeenCalledWith(3000);
+            expect(mockSocatContainer.getMappedPort).toHaveBeenCalledWith(8080);
             expect(result.payload).toEqual([{ url: 'http://localhost:8080' }]);
         });
 

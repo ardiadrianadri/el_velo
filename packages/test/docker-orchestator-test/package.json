@@ -1,0 +1,31 @@
+{
+  "name": "@el_velo/docker-orchestator-test",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Adrian Ferreres Esteller",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "start" : "node dist/index.js",
+    "test": "npm run build && npm run start"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "@typescript-eslint/eslint-plugin": "^8.60.1",
+    "@typescript-eslint/parser": "^8.60.1",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "prettier": "^3.8.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@el_velo/common": "^1.0.0",
+    "@el_velo/docker-orchestator": "^1.0.0",
+    "axios": "^1.16.0"
+  }
+}
