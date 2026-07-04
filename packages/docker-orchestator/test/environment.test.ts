@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { VeloError } from '@el_velo/common';
 
-import { DockerEnvironment } from '../src/environment.js';
 import { CODES, EnvironmentState } from '../src/constants.js';
 import {
     mockContainer,
@@ -13,8 +12,19 @@ import {
     mockSocatContainerBuilder,
     networkStartMock,
     pathValidationMock,
-    dockerServiceValidator
+    dockerServiceValidator,
+    mockPathJoin
 } from './mocks.js';
+
+vi.mock('node:path', async () => {
+    const actual = await vi.importActual('node:path');
+    return {
+        ...actual,
+        join: mockPathJoin
+    };
+});
+
+import { DockerEnvironment } from '../src/environment.js';
 
 describe('DockerEnvironment test', () => {
     let env: DockerEnvironment;

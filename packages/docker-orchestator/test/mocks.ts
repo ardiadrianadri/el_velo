@@ -49,3 +49,5 @@ export const dockerServiceValidator = {
         { valid: true }
     ])
 };
+
+export const mockPathJoin = vi.fn().mockImplementation((...args: string[]) => args[args.length - 1]);
