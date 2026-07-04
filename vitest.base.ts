@@ -1,29 +1,36 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
     globals: true,
 
-    environment: "node",
+    environment: 'node',
 
     include: [
-      "test/**/*.test.ts"
+      'test/**/*.test.ts'
     ],
 
     exclude: [
-      "node_modules",
-      "dist",
-      "coverage"
+      'node_modules',
+      'dist',
+      'coverage'
     ],
 
     coverage: {
-      provider: "v8",
+      provider: 'v8',
       reporter: [
-        "text",
-        "html",
-        "json"
+        'text',
+        'html',
+        'json'
       ],
-      reportsDirectory: "./coverage"
+
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80
+      },
+      reportsDirectory: './coverage'
     }
   }
 });
