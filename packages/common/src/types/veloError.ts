@@ -1,4 +1,4 @@
-import { Code } from './codes.js';
+import type { Code } from './codes.js';
 
 /**
  * VeloError is a custom error class that extends the built-in Error class. It includes an additional property 'code' of type Code, which provides more context about the error that occurred. This allows for more structured error handling in the application.

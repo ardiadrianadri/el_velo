@@ -32,7 +32,7 @@ export class Logger {
      * @param messsage log message
      */
     private writeLog(className: string, methodName: string, level: string, messsage: string): void {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
         (this.logWriter as any)[level]({ className, methodName }, messsage);
     }
 

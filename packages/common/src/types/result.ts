@@ -1,4 +1,4 @@
-import { Code } from './codes.js';
+import type { Code } from './codes.js';
 
 /**
  * All the methods in el velo return a Result object as response. 

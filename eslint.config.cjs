@@ -3,6 +3,9 @@ const js = require('@eslint/js');
 const tseslint = require('typescript-eslint');
 
 module.exports = tseslint.config(
+  {
+    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**'],
+  },
   js.configs.recommended,
   {
     files: ['**/*.ts'],
@@ -10,10 +13,12 @@ module.exports = tseslint.config(
       ...tseslint.configs.strictTypeChecked,
       ...tseslint.configs.stylisticTypeChecked,
     ],
-
     languageOptions: {
       parserOptions: {
-        project: ['./packages/**/tsconfig.eslint.json'],
+        project: [
+          './tsconfig.eslint.json',
+          './packages/**/tsconfig.eslint.json'
+        ],
         tsconfigRootDir: __dirname,
       },
     },

@@ -19,7 +19,11 @@
   "scripts": {
     "clean": "nx run-many -t clean --all",
     "build": "nx run-many -t build --all",
-    "test": "nx run-many -t test --all"
+    "test": "nx run-many -t test --all",
+    "test:e2e": "nx run-many -t test:e2e --all",
+    "test:coverage": "nx run-many -t test:coverage --all",
+    "lint": "nx run-many -t lint --all",
+    "lint:fix": "nx run-many -t lint --all --fix"
   },
   "devDependencies": {
     "@nx/eslint": "^23.0.0",

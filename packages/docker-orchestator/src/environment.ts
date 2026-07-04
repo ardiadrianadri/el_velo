@@ -225,7 +225,7 @@ export class DockerEnvironment {
         if (options?.timeoutMs) {
             const timeoutPromise = new Promise<Result<CommandResult>>((_, reject) => {
                 timeoutHandle = setTimeout(() => {
-                    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+                     
                     const error = new VeloError(CODES.COMMAND_EXECUTION_TIMEOUT, `Command execution timed out after ${options.timeoutMs} ms.`);
                     reject(error);
                 }, options.timeoutMs);
