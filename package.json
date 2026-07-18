@@ -26,7 +26,7 @@
     "lint:fix": "nx run-many -t lint --all --fix"
   },
   "devDependencies": {
-    "@nx/eslint": "^23.0.0",
+    "@nx/eslint": "^23.1.0",
     "@nx/vitest": "^23.0.0",
     "nx": "^23.0.0",
     "typescript-eslint": "^8.63.0",
