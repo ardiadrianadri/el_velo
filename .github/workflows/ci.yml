@@ -6,14 +6,21 @@ on:
   pull_request:
     branches:
       - main
+      - development
     paths-ignore:
       - .github/workflows/ci.yml
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -30,3 +37,39 @@ jobs:
         run: npm run test:e2e
       - name: Vulnerability scan in dependencies
         run: npm audit --audit-level=high --omit=dev
+  typescript-review:
+    needs: build
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.pull_request.base.ref == 'main' && 'production' || 'development'}}
+      deployment: false
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+        name: Checkout
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 26
+      - name: Install dependencies
+        run: npm ci
+      - name: Fetch pull request base branch
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.CLIENT_ID}}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+          permission-pull-requests: write
+      - name: Analyze and publish TypeScript review
+        working-directory: packages/tools/typescript-review
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.base_ref }}
+          TYPESCRIPT_REVIEW_PROFILE_PATH: ${{ vars.TYPESCRIPT_REVIEW_PROFILE_PATH }}
+        run: npm run start
