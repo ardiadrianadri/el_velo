@@ -70,6 +70,6 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          PR_NUMBER: ${{ github.event.pull_request.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           TYPESCRIPT_REVIEW_PROFILE_PATH: ${{ vars.TYPESCRIPT_REVIEW_PROFILE_PATH }}
         run: npm run start
