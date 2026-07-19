@@ -45,7 +45,9 @@ export const reviewSchema = {
                 additionalProperties: false,
             }
         }
-    }
+    },
+    required: ['findings'],
+    additionalProperties: false,
 };
 
 export interface ReviewSchema {
