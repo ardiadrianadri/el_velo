@@ -30,6 +30,7 @@ export const reviewSchema = {
                     },
                     line: {
                         type: 'number',
+                        minimum: 1,
                     },
                     title: {
                         type: 'string',
