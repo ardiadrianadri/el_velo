@@ -28,7 +28,7 @@ type Finding = ReviewSchema['findings'][number];
 
 async function getGitDiff(): Promise<string> {
     const execAsync = promisify(exec);
-    const { stdout } = await execAsync(`git diff --no-ext-diff --find-renames origin/${config.branchToCompare}...HEAD`);
+    const { stdout } = await execAsync(`git diff --no-ext-diff --find-renames origin/${config.branchToCompare}...HEAD -- '*.ts' '*.tsx' '*.mts' '*.cts'`);
     return stdout;
 }
 
