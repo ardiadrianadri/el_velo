@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@nx/eslint": "^23.1.0",
-    "@nx/vitest": "^23.0.0",
+    "@nx/vitest": "^23.1.0",
     "nx": "^23.0.0",
     "typescript-eslint": "^8.64.0",
     "vite": "^8.1.5",
