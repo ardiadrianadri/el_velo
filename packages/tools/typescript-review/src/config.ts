@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import process from 'node:process';
+import type { Schema } from '@cfworker/json-schema';
 
 const defaultProfilePath = './.github/ai-review/profiles/typescript-review.md';
 const defaultOpenAIModel = 'gpt-5.6-terra';
@@ -11,9 +12,10 @@ export const config = {
     branchToCompare: process.env.BRANCH_TO_COMPARE ?? 'develop',
     openAiApiKey: process.env.OPENAI_API_KEY,
     openAIModel: openAIModel,
+    maxGitDiffBytes: Number(process.env.MAX_GIT_DIFF_BYTES ?? 1024 * 1024), // 1 MB
 };
 
-export const reviewSchema = {
+export const reviewSchema: Schema = {
     type: 'object',
     properties: {
         findings: {

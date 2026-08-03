@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { Validator } from '@cfworker/json-schema';
 import OpenAI from 'openai';
 import axios from 'axios';
 
@@ -70,9 +71,20 @@ function addLineNumbersToDiff(diff: string): string {
 }
 
 async function getGitDiff(): Promise<string> {
-    const execAsync = promisify(execFile);
-    const { stdout } = await execAsync('git', ['diff', '--no-ext-diff', '--find-renames', `origin/${config.branchToCompare}...HEAD`, '--', '*.ts', '*.tsx', '*.mts', '*.cts']);
-    return stdout;
+    try {
+        const execAsync = promisify(execFile);
+        const { stdout } = await execAsync(
+            'git', ['diff', '--no-ext-diff', '--find-renames', `origin/${config.branchToCompare}...HEAD`, '--', '*.ts', '*.tsx', '*.mts', '*.cts'],
+            { maxBuffer: config.maxGitDiffBytes }
+        );
+        return stdout;
+    }
+    catch (error: any) {
+        if (error instanceof RangeError && error.message.includes('maxBuffer')) {
+            throw new Error(`Git diff output exceeds the maximum buffer size of ${config.maxGitDiffBytes} bytes. Consider increasing MAX_GIT_DIFF_BYTES.`);
+        }
+        throw error;
+    }
 }
 
 /*async function buildPrompt(): Promise<RenderTextToImagesResult> {
@@ -198,8 +210,8 @@ async function createReview(
     const comments = includeInlineComments && review.findings.length > 0
         ? review.findings.map(toInlineComment) : [];
     const url = new URL(
-        `/repos/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/pulls/${context.pullNumber}/reviews`,
-        context.apiUrl,
+        `repos/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/pulls/${context.pullNumber}/reviews`,
+        `${context.apiUrl.replace(/\/$/, '')}/`
     );
 
     await axios.post(url.toString(), {
@@ -234,9 +246,15 @@ async function writeReview(review: ReviewSchema): Promise<void> {
 }
 
 async function main(): Promise<void> {
+    const validator = new Validator(reviewSchema);
     const prompt = await buildPrompt();
     const response = await getAIAnalysis(prompt);
     const review: ReviewSchema = JSON.parse(response) as ReviewSchema;
+    const validationResult = validator.validate(review);
+    if (!validationResult.valid) {
+        console.error('Invalid review schema:', validationResult.errors);
+        throw new Error('The AI response does not conform to the expected review schema.');
+    }
     await writeReview(review);
 }
 
