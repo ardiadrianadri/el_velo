@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { join, isAbsolute } from 'node:path';
 import process from 'node:process';
 import type { Schema } from '@cfworker/json-schema';
 
@@ -27,7 +27,7 @@ const getMaxGitDiffBytes = (): number => {
 };
 
 export const config = {
-    profilePath: profilePath.startsWith('/') ? profilePath : join(process.cwd(), profilePath),
+    profilePath: isAbsolute(profilePath) ? profilePath : join(process.cwd(), profilePath),
     branchToCompare: process.env.BRANCH_TO_COMPARE ?? 'develop',
     openAiApiKey: process.env.OPENAI_API_KEY,
     openAIModel: openAIModel,
