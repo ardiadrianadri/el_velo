@@ -215,7 +215,7 @@ function getReviewableDiffLines(diff: string): Map<string, Set<number>> {
         const hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
         if (hunkHeader) {
             newLine = Number(hunkHeader[1]);
-            remainingNewLines = Number(hunkHeader[2]);
+            remainingNewLines = hunkHeader[2] ? Number(hunkHeader[2]) : 1;
             continue;
         }
 

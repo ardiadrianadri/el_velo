@@ -62,7 +62,7 @@ export const reviewSchema: Schema = {
                         type: 'string',
                     },
                     line: {
-                        type: 'number',
+                        type: 'integer',
                         minimum: 1,
                     },
                     title: {
