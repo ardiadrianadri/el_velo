@@ -36,7 +36,7 @@ function addLineNumbersToDiff(diff: string): string {
     let isInsideHunk = false;
 
     return diff.split('\n').map((line) => {
-        if (line.startsWith('diff --git ') || line.startsWith('--- ') || line.startsWith('+++ ')) {
+        if (line.startsWith('diff --git ')) {
             isInsideHunk = false;
             return line;
         }
@@ -49,21 +49,27 @@ function addLineNumbersToDiff(diff: string): string {
             return line;
         }
 
-        if (!isInsideHunk || line === '\\ No newline at end of file') {
+        if (isInsideHunk) {
+            if (line === '\\ No newline at end of file') {
+                return line;
+            }
+
+            if (line.startsWith('+')) {
+                return `new:${newLine++} | ${line}`;
+            }
+
+            if (line.startsWith('-')) {
+                return `old:${oldLine++} | ${line}`;
+            }
+
+            if (line.startsWith(' ')) {
+                oldLine++;
+                return `new:${newLine++} | ${line}`;
+            }
+        }
+
+        if (!isInsideHunk && (line.startsWith('--- ') || line.startsWith('+++ '))) {
             return line;
-        }
-
-        if (line.startsWith('+')) {
-            return `new:${newLine++} | ${line}`;
-        }
-
-        if (line.startsWith('-')) {
-            return `old:${oldLine++} | ${line}`;
-        }
-
-        if (line.startsWith(' ')) {
-            oldLine++;
-            return `new:${newLine++} | ${line}`;
         }
 
         return line;
@@ -202,11 +208,13 @@ function getReviewableDiffLines(diff: string): Map<string, Set<number>> {
     let path: string | undefined;
     let newLine = 0;
     let remainingNewLines = 0;
+    let isInsideHunk = false;
 
     for (const line of diff.split('\n')) {
-        if (line.startsWith('+++ ')) {
-            const rightPath = line.slice(4);
-            path = rightPath.startsWith('b/') ? rightPath.slice(2) : undefined;
+        if (line.startsWith('diff --git ')) {
+            path = undefined;
+            isInsideHunk = false;
+            remainingNewLines = 0;
             continue;
         }
 
@@ -214,24 +222,37 @@ function getReviewableDiffLines(diff: string): Map<string, Set<number>> {
         if (hunkHeader) {
             newLine = Number(hunkHeader[1]);
             remainingNewLines = hunkHeader[2] ? Number(hunkHeader[2]) : 1;
+            isInsideHunk = true;
             continue;
         }
 
-        if (!path || remainingNewLines === 0 || line === '\\ No newline at end of file') {
-            continue;
-        }
-
-        if (line.startsWith('+') || line.startsWith(' ')) {
-            let lines = reviewableLines.get(path);
-            if (!lines) {
-                lines = new Set<number>();
-                reviewableLines.set(path, lines);
+        if (isInsideHunk) {
+            if (!path || remainingNewLines === 0 || line === '\\ No newline at end of file') {
+                continue;
             }
-            lines.add(newLine++);
-            remainingNewLines--;
-        } else if (line.startsWith('-')) {
-            // Deletions have no RIGHT-side line, so they cannot receive an
-            // inline comment with side: RIGHT.
+
+            if (line.startsWith('+') || line.startsWith(' ')) {
+                let lines = reviewableLines.get(path);
+                if (!lines) {
+                    lines = new Set<number>();
+                    reviewableLines.set(path, lines);
+                }
+                lines.add(newLine++);
+                remainingNewLines--;
+            } else if (line.startsWith('-')) {
+                // Deletions have no RIGHT-side line, so they cannot receive an
+                // inline comment with side: RIGHT.
+            }
+
+            if (remainingNewLines === 0) {
+                isInsideHunk = false;
+            }
+            continue;
+        }
+
+        if (line.startsWith('+++ ')) {
+            const rightPath = line.slice(4);
+            path = rightPath.startsWith('b/') ? rightPath.slice(2) : undefined;
         }
     }
 
