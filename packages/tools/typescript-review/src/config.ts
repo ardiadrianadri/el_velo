@@ -19,11 +19,15 @@ const getMaxGitDiffBytes = (): number => {
         return defaultValue;
     }
 
+    if (!Number.isSafeInteger(bytes) || bytes < 0) {
+        return defaultValue;
+    }
+
     return bytes;
 };
 
 export const config = {
-    profilePath: join(process.cwd(), profilePath),
+    profilePath: profilePath.startsWith('/') ? profilePath : join(process.cwd(), profilePath),
     branchToCompare: process.env.BRANCH_TO_COMPARE ?? 'develop',
     openAiApiKey: process.env.OPENAI_API_KEY,
     openAIModel: openAIModel,
