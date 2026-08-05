@@ -7,13 +7,40 @@ const defaultOpenAIModel = 'gpt-5.6-terra';
 const profilePath: string = process.env.TYPESCRIPT_REVIEW_PROFILE_PATH ?? defaultProfilePath;
 const openAIModel: string = process.env.OPENAI_MODEL ?? defaultOpenAIModel;
 
+const getMaxGitDiffBytes = (): number => {
+    const defaultValue = 1024 * 1024;
+    const bytes = Number(process.env.MAX_GIT_DIFF_BYTES ?? defaultValue);
+
+    if (Number.isNaN(bytes)) {
+        return defaultValue;
+    }
+
+    if (!Number.isFinite(bytes)) {
+        return defaultValue;
+    }
+
+    return bytes;
+};
+
 export const config = {
     profilePath: join(process.cwd(), profilePath),
     branchToCompare: process.env.BRANCH_TO_COMPARE ?? 'develop',
     openAiApiKey: process.env.OPENAI_API_KEY,
     openAIModel: openAIModel,
-    maxGitDiffBytes: Number(process.env.MAX_GIT_DIFF_BYTES ?? 1024 * 1024), // 1 MB
+    maxGitDiffBytes: getMaxGitDiffBytes(), // 1 MB
 };
+
+export const reviewText = {
+    marker: '<!-- typescript-review -->',
+    title: 'Automated TypeScript review',
+    noFindings: 'No TypeScript issues were found in the changes analysed.',
+    inlineCommentsPublished: 'Findings have also been added as inline comments when GitHub could associate them with the diff.',
+    inlineCommentsUnavailable: 'GitHub could not associate the findings with the diff; they are included in the summary below.',
+    fileLabel: 'File',
+    lineLabel: 'Line',
+    recommendationLabel: 'Recommendation',
+    truncated: '…result truncated…',
+} as const;
 
 export const reviewSchema: Schema = {
     type: 'object',

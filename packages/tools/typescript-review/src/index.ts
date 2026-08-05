@@ -5,7 +5,7 @@ import { Validator } from '@cfworker/json-schema';
 import OpenAI from 'openai';
 import axios from 'axios';
 
-import { config, reviewSchema } from './config.js';
+import { config, reviewSchema, reviewText } from './config.js';
 import type { ReviewSchema } from './config.js';
 
 async function readProfile(): Promise<string> {
@@ -94,9 +94,8 @@ async function getGitDiff(): Promise<string> {
     return image;
 }*/
 
-async function buildPrompt(): Promise<string> {
+async function buildPrompt(diff: string): Promise<string> {
     const profile = await readProfile();
-    const diff = await getGitDiff();
     const prompt = `${profile}\n\n${addLineNumbersToDiff(diff)}`;
     console.log('Prompt length:', prompt.length);
     console.log('Prompt preview:\n', prompt.slice(0, 1000), '\n...\n', prompt.slice(-1000));
@@ -158,64 +157,129 @@ function getGitHubContext(): GitHubContext {
 }
 
 function truncate(value: string, maxLength: number): string {
-    return value.length > maxLength ? `${value.slice(0, maxLength)}\n\n…resultado truncado…` : value;
+    return value.length > maxLength ? `${value.slice(0, maxLength)}\n\n${reviewText.truncated}` : value;
 }
 
 function formatFinding(finding: Finding): string {
     return `### ${finding.severity.toUpperCase()}: ${finding.title}
 
-**Archivo:** \`${finding.file}\`  
-**Línea:** ${finding.line}
+**${reviewText.fileLabel}:** \`${finding.file}\`<br>
+**${reviewText.lineLabel}:** ${finding.line}
 
 ${finding.description}
 
-**Recomendación:** ${finding.recommendation}`;
+**${reviewText.recommendationLabel}:** ${finding.recommendation}`;
 }
 
 function buildReviewBody(review: ReviewSchema, inlineCommentsPublished: boolean): string {
-    const marker = '<!-- typescript-review -->';
     const findings = review.findings.length === 0
-        ? 'No se han encontrado problemas de TypeScript en los cambios analizados.'
+        ? reviewText.noFindings
         : review.findings.map(formatFinding).join('\n\n---\n\n');
     const inlineNote = inlineCommentsPublished
-        ? 'Los hallazgos también se han añadido como comentarios en línea cuando GitHub ha podido asociarlos al diff.'
-        : 'GitHub no ha podido asociar los hallazgos al diff; se incluyen a continuación en el resumen.';
+        ? reviewText.inlineCommentsPublished
+        : reviewText.inlineCommentsUnavailable;
 
-    return truncate(`${marker}
-## Revisión automática de TypeScript
+    return truncate(`${reviewText.marker}
+## ${reviewText.title}
 
 ${inlineNote}
 
 ${findings}`, maxReviewBodyLength);
 }
 
-function toInlineComment(finding: Finding): { body: string; line: number; path: string; side: 'RIGHT' } {
+interface InlineComment {
+    body: string;
+    line: number;
+    path: string;
+    side: 'RIGHT';
+}
+
+/**
+ * Returns repository-relative paths and the right-side lines that GitHub can
+ * associate with a review comment. A line is eligible when it appears in a
+ * hunk on the new side of the unified diff (including context lines).
+ */
+function getReviewableDiffLines(diff: string): Map<string, Set<number>> {
+    const reviewableLines = new Map<string, Set<number>>();
+    let path: string | undefined;
+    let newLine = 0;
+    let remainingNewLines = 0;
+
+    for (const line of diff.split('\n')) {
+        if (line.startsWith('+++ ')) {
+            const rightPath = line.slice(4);
+            path = rightPath.startsWith('b/') ? rightPath.slice(2) : undefined;
+            continue;
+        }
+
+        const hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
+        if (hunkHeader) {
+            newLine = Number(hunkHeader[1]);
+            remainingNewLines = Number(hunkHeader[2]);
+            continue;
+        }
+
+        if (!path || remainingNewLines === 0 || line === '\\ No newline at end of file') {
+            continue;
+        }
+
+        if (line.startsWith('+') || line.startsWith(' ')) {
+            let lines = reviewableLines.get(path);
+            if (!lines) {
+                lines = new Set<number>();
+                reviewableLines.set(path, lines);
+            }
+            lines.add(newLine++);
+            remainingNewLines--;
+        } else if (line.startsWith('-')) {
+            // Deletions have no RIGHT-side line, so they cannot receive an
+            // inline comment with side: RIGHT.
+        }
+    }
+
+    return reviewableLines;
+}
+
+function normalizeFindingPath(path: string): string {
+    return path.startsWith('b/') ? path.slice(2) : path;
+}
+
+function toInlineComment(finding: Finding, path: string): InlineComment {
     return {
         body: truncate(`**${finding.severity.toUpperCase()}: ${finding.title}**
 
 ${finding.description}
 
-**Recomendación:** ${finding.recommendation}`, maxReviewBodyLength),
+**${reviewText.recommendationLabel}:** ${finding.recommendation}`, maxReviewBodyLength),
         line: finding.line,
-        path: finding.file,
+        path,
         side: 'RIGHT',
     };
+}
+
+function getInlineComments(review: ReviewSchema, diff: string): InlineComment[] {
+    const reviewableLines = getReviewableDiffLines(diff);
+
+    return review.findings.flatMap((finding) => {
+        const path = normalizeFindingPath(finding.file);
+        return reviewableLines.get(path)?.has(finding.line)
+            ? [toInlineComment(finding, path)]
+            : [];
+    });
 }
 
 async function createReview(
     context: GitHubContext,
     review: ReviewSchema,
-    includeInlineComments: boolean,
+    comments: InlineComment[],
 ): Promise<void> {
-    const comments = includeInlineComments && review.findings.length > 0
-        ? review.findings.map(toInlineComment) : [];
     const url = new URL(
         `repos/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/pulls/${context.pullNumber}/reviews`,
         `${context.apiUrl.replace(/\/$/, '')}/`
     );
 
     await axios.post(url.toString(), {
-        body: buildReviewBody(review, includeInlineComments),
+        body: buildReviewBody(review, comments.length > 0),
         comments,
         event: 'COMMENT',
     }, {
@@ -228,16 +292,17 @@ async function createReview(
     });
 }
 
-async function writeReview(review: ReviewSchema): Promise<void> {
+async function writeReview(review: ReviewSchema, diff: string): Promise<void> {
     const context = getGitHubContext();
+    const comments = getInlineComments(review, diff);
 
     try {
-        await createReview(context, review, true);
+        await createReview(context, review, comments);
     } catch (error: unknown) {
         // GitHub rejects the complete request when one requested line is not in the PR diff.
         // Publish a native review anyway, preserving every finding in its summary.
-        if (axios.isAxiosError(error) && error.response?.status === 422 && review.findings.length > 0) {
-            await createReview(context, review, false);
+        if (axios.isAxiosError(error) && error.response?.status === 422 && comments.length > 0) {
+            await createReview(context, review, []);
             return;
         }
 
@@ -247,7 +312,8 @@ async function writeReview(review: ReviewSchema): Promise<void> {
 
 async function main(): Promise<void> {
     const validator = new Validator(reviewSchema);
-    const prompt = await buildPrompt();
+    const diff = await getGitDiff();
+    const prompt = await buildPrompt(diff);
     const response = await getAIAnalysis(prompt);
     const review: ReviewSchema = JSON.parse(response) as ReviewSchema;
     const validationResult = validator.validate(review);
@@ -255,7 +321,7 @@ async function main(): Promise<void> {
         console.error('Invalid review schema:', validationResult.errors);
         throw new Error('The AI response does not conform to the expected review schema.');
     }
-    await writeReview(review);
+    await writeReview(review, diff);
 }
 
 main().catch((error: unknown) => {
