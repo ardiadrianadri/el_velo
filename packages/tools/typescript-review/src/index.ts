@@ -97,8 +97,6 @@ async function getGitDiff(): Promise<string> {
 async function buildPrompt(diff: string): Promise<string> {
     const profile = await readProfile();
     const prompt = `${profile}\n\n${addLineNumbersToDiff(diff)}`;
-    console.log('Prompt length:', prompt.length);
-    console.log('Prompt preview:\n', prompt.slice(0, 1000), '\n...\n', prompt.slice(-1000));
     //const image = await renderTextToImages(`${profile}\n\n${diff}`);
     return prompt;
 }
