@@ -19,7 +19,7 @@ const getMaxGitDiffBytes = (): number => {
         return defaultValue;
     }
 
-    if (!Number.isSafeInteger(bytes) || bytes < 0) {
+    if (!Number.isSafeInteger(bytes) || bytes <= 0) {
         return defaultValue;
     }
 
