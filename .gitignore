@@ -10,3 +10,6 @@ dist
 .nx/workspace-data
 vitest.config.*.timestamp*
 .nx/migrate-runs
+run.sh
+encrypt.sh
+image_*

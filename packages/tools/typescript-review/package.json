@@ -1,0 +1,24 @@
+{
+  "name": "@el_velo/typescript-review",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "types": "./dist/index.d.ts",
+  "author": "Adrian Ferreres Esteller",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@types/node": "^25.9.5",
+    "@vitest/coverage-v8": "^4.1.8",
+    "axios": "^1.18.1",
+    "openai": "^6.46.0",
+    "pxpipe-proxy": "^0.8.0",
+    "vitest": "^4.1.8"
+  }
+}
