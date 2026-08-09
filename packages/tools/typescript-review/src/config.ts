@@ -30,6 +30,7 @@ export const config = {
     profilePath: isAbsolute(profilePath) ? profilePath : join(process.cwd(), profilePath),
     branchToCompare: process.env.BRANCH_TO_COMPARE ?? 'develop',
     openAiApiKey: process.env.OPENAI_API_KEY,
+    profileEncryptionKey: process.env.TYPESCRIPT_REVIEW_PROFILE_KEY,
     openAIModel: openAIModel,
     maxGitDiffBytes: getMaxGitDiffBytes(), // 1 MB
     maxOutputTokens: 16_000,

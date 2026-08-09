@@ -11,4 +11,5 @@ dist
 vitest.config.*.timestamp*
 .nx/migrate-runs
 run.sh
+encrypt.sh
 image_*

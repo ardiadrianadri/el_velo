@@ -74,4 +74,5 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           TYPESCRIPT_REVIEW_PROFILE_PATH: ${{ vars.TYPESCRIPT_REVIEW_PROFILE_PATH }}
+          TYPESCRIPT_REVIEW_PROFILE_KEY: ${{ secrets.TYPESCRIPT_REVIEW_PROFILE_KEY }}
         run: npm run start
