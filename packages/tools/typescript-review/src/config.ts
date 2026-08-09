@@ -32,6 +32,7 @@ export const config = {
     openAiApiKey: process.env.OPENAI_API_KEY,
     openAIModel: openAIModel,
     maxGitDiffBytes: getMaxGitDiffBytes(), // 1 MB
+    maxOutputTokens: 16_000,
 };
 
 export const reviewText = {
