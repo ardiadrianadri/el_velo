@@ -45,7 +45,6 @@ export const reviewText = {
     fileLabel: 'File',
     lineLabel: 'Line',
     recommendationLabel: 'Recommendation',
-    truncated: '…result truncated…',
 } as const;
 
 export const reviewSchema: Schema = {
@@ -62,6 +61,7 @@ export const reviewSchema: Schema = {
                     },
                     file: {
                         type: 'string',
+                        maxLength: 512,
                     },
                     line: {
                         type: 'integer',
@@ -69,12 +69,15 @@ export const reviewSchema: Schema = {
                     },
                     title: {
                         type: 'string',
+                        maxLength: 300,
                     },
                     description: {
                         type: 'string',
+                        maxLength: 4_000,
                     },
                     recommendation: {
                         type: 'string',
+                        maxLength: 2_000,
                     },
                 },
                 required: ['severity', 'file', 'line', 'title', 'description', 'recommendation'],

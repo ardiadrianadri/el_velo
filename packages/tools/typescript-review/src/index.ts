@@ -41,6 +41,7 @@ function decryptProfile(encryptedProfile: string): string {
 }
 
 const maxReviewBodyLength = 60_000;
+const maxFindingsLengthPerReview = 58_000;
 
 interface GitHubContext {
     apiUrl: string;
@@ -197,10 +198,6 @@ function getGitHubContext(): GitHubContext {
     };
 }
 
-function truncate(value: string, maxLength: number): string {
-    return value.length > maxLength ? `${value.slice(0, maxLength)}\n\n${reviewText.truncated}` : value;
-}
-
 function formatFinding(finding: Finding): string {
     return `### ${finding.severity.toUpperCase()}: ${finding.title}
 
@@ -212,7 +209,12 @@ ${finding.description}
 **${reviewText.recommendationLabel}:** ${finding.recommendation}`;
 }
 
-function buildReviewBody(review: ReviewSchema, inlineCommentsPublished: boolean): string {
+function buildReviewBody(
+    review: ReviewSchema,
+    inlineCommentsPublished: boolean,
+    partNumber: number,
+    partCount: number,
+): string {
     const findings = review.findings.length === 0
         ? reviewText.noFindings
         : review.findings.map(formatFinding).join('\n\n---\n\n');
@@ -220,12 +222,50 @@ function buildReviewBody(review: ReviewSchema, inlineCommentsPublished: boolean)
         ? reviewText.inlineCommentsPublished
         : reviewText.inlineCommentsUnavailable;
 
-    return truncate(`${reviewText.marker}
-## ${reviewText.title}
+    const partTitle = partCount > 1 ? ` (${partNumber}/${partCount})` : '';
+    const body = `${reviewText.marker}
+## ${reviewText.title}${partTitle}
 
 ${inlineNote}
 
-${findings}`, maxReviewBodyLength);
+${findings}`;
+
+    if (body.length > maxReviewBodyLength) {
+        throw new Error('A review body exceeds GitHub\'s maximum length.');
+    }
+
+    return body;
+}
+
+function splitReviewIntoParts(review: ReviewSchema): ReviewSchema[] {
+    if (review.findings.length === 0) {
+        return [review];
+    }
+
+    const parts: Finding[][] = [];
+    let currentPart: Finding[] = [];
+    let currentPartLength = 0;
+
+    for (const finding of review.findings) {
+        const separatorLength = currentPart.length === 0 ? 0 : '\n\n---\n\n'.length;
+        const findingLength = formatFinding(finding).length + separatorLength;
+
+        if (findingLength > maxFindingsLengthPerReview) {
+            throw new Error('A finding exceeds the maximum publishable review size.');
+        }
+
+        if (currentPartLength + findingLength > maxFindingsLengthPerReview) {
+            parts.push(currentPart);
+            currentPart = [];
+            currentPartLength = 0;
+        }
+
+        currentPart.push(finding);
+        currentPartLength += formatFinding(finding).length + (currentPart.length === 1 ? 0 : '\n\n---\n\n'.length);
+    }
+
+    parts.push(currentPart);
+    return parts.map((findings) => ({ findings }));
 }
 
 interface InlineComment {
@@ -302,11 +342,11 @@ function normalizeFindingPath(path: string): string {
 
 function toInlineComment(finding: Finding, path: string): InlineComment {
     return {
-        body: truncate(`**${finding.severity.toUpperCase()}: ${finding.title}**
+        body: `**${finding.severity.toUpperCase()}: ${finding.title}**
 
 ${finding.description}
 
-**${reviewText.recommendationLabel}:** ${finding.recommendation}`, maxReviewBodyLength),
+**${reviewText.recommendationLabel}:** ${finding.recommendation}`,
         line: finding.line,
         path,
         side: 'RIGHT',
@@ -344,6 +384,8 @@ async function createReview(
     context: GitHubContext,
     review: ReviewSchema,
     comments: InlineComment[],
+    partNumber: number,
+    partCount: number,
 ): Promise<void> {
     const url = new URL(
         `repos/${encodeURIComponent(context.owner)}/${encodeURIComponent(context.repo)}/pulls/${context.pullNumber}/reviews`,
@@ -351,7 +393,7 @@ async function createReview(
     );
 
     await axios.post(url.toString(), {
-        body: buildReviewBody(review, comments.length > 0),
+        body: buildReviewBody(review, comments.length > 0, partNumber, partCount),
         comments,
         event: 'COMMENT',
     }, {
@@ -367,19 +409,23 @@ async function createReview(
 
 async function writeReview(review: ReviewSchema, diff: string): Promise<void> {
     const context = getGitHubContext();
-    const comments = getInlineComments(review, diff);
+    const reviewParts = splitReviewIntoParts(review);
 
-    try {
-        await createReview(context, review, comments);
-    } catch (error: unknown) {
-        // GitHub rejects the complete request when one requested line is not in the PR diff.
-        // Publish a native review anyway, preserving every finding in its summary.
-        if (axios.isAxiosError(error) && error.response?.status === 422 && comments.length > 0) {
-            await createReview(context, review, []);
-            return;
+    for (const [index, reviewPart] of reviewParts.entries()) {
+        const comments = getInlineComments(reviewPart, diff);
+
+        try {
+            await createReview(context, reviewPart, comments, index + 1, reviewParts.length);
+        } catch (error: unknown) {
+            // GitHub rejects the complete request when one requested line is not in the PR diff.
+            // Publish a native review anyway, preserving every finding in its summary.
+            if (axios.isAxiosError(error) && error.response?.status === 422 && comments.length > 0) {
+                await createReview(context, reviewPart, [], index + 1, reviewParts.length);
+                continue;
+            }
+
+            throw error;
         }
-
-        throw error;
     }
 }
 
