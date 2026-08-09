@@ -99,3 +99,30 @@ export interface ReviewSchema {
         recommendation: string;
     }[];
 };
+
+export type Finding = ReviewSchema['findings'][number];
+
+export interface GitHubContext {
+    apiUrl: string;
+    owner: string;
+    repo: string;
+    pullNumber: number;
+    token: string;
+}
+
+export interface InlineComment {
+    body: string;
+    line: number;
+    path: string;
+    side: 'RIGHT';
+}
+
+export const maxReviewBodyLength = 60_000;
+export const maxFindingsLengthPerReview = 58_000;
+
+export const severityPriority: Record<Finding['severity'], number> = {
+    critical: 0,
+    high: 1,
+    medium: 2,
+    low: 3,
+};
