@@ -24,6 +24,6 @@
     "@cfworker/json-schema": "^4.1.1",
     "@el_velo/common": "^1.0.0",
     "@el_velo/docker-orchestator": "^1.0.0",
-    "axios": "^1.16.0"
+    "axios": "^1.19.0"
   }
 }
