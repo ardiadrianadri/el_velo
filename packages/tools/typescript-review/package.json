@@ -17,7 +17,7 @@
     "@types/node": "^25.9.5",
     "@vitest/coverage-v8": "^4.1.8",
     "axios": "^1.18.1",
-    "openai": "^6.46.0",
+    "openai": "^6.49.0",
     "pxpipe-proxy": "^0.8.0",
     "vitest": "^4.1.8"
   }
