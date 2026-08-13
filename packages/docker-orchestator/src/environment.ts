@@ -1,11 +1,11 @@
 
 import type { StartedNetwork, StartedTestContainer, ExecResult, StartedSocatContainer } from 'testcontainers';
 import { Network, GenericContainer, SocatContainer } from 'testcontainers';
-import type { Code } from '@el_velo/common';
+import type { Code, Service, Environment, ExposedUrl, CommandResult } from '@el_velo/common';
 import { join } from 'node:path';
 import { Logger, Result, VeloError, PathValidation } from '@el_velo/common';
 
-import type { Service, CommandResult, Volume, ExposedUrl, RunningContainer, PortMapping } from './types.js';
+import type { Volume, RunningContainer, PortMapping } from './types.js';
 import { CODES, EnvironmentState } from './constants.js';
 import type { BindMode } from 'testcontainers/build/types.js';
 import { DockerServiceValidator } from './validator.js';
@@ -13,7 +13,7 @@ import { DockerServiceValidator } from './validator.js';
 /**
  * Class to start up a docker environment
  */
-export class DockerEnvironment {
+export class DockerEnvironment implements Environment {
     public readonly services: Service[];
     public readonly entrypoint: string;
     

@@ -1,5 +1,5 @@
 import { DockerEnvironment } from '@el_velo/docker-orchestator';
-import type { Service } from '@el_velo/docker-orchestator';
+import type { Service } from '@el_velo/common';
 import { Logger } from '@el_velo/common';
 
 import { ENVIRONMENT_CONFIG } from './config.js';
