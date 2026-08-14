@@ -18,7 +18,7 @@
     "@vitest/coverage-v8": "^4.1.8",
     "axios": "^1.19.0",
     "openai": "^6.49.0",
-    "pxpipe-proxy": "^0.11.1",
+    "pxpipe-proxy": "^0.13.0",
     "vitest": "^4.1.8"
   }
 }
