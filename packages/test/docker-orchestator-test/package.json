@@ -16,7 +16,7 @@
     "@el_velo/common": "^1.0.0",
     "@el_velo/docker-orchestator": "^1.0.0",
     "@types/node": "^25.9.5",
-    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.65.0",
     "axios": "^1.19.0",
     "eslint": "^9.39.5",
