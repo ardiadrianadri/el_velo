@@ -48,6 +48,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          # Review the PR head, not GitHub's synthetic merge commit. Inline
+          # review comments must point to this commit's diff.
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
         name: Checkout
       - name: Setup Node.js
@@ -73,6 +76,8 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BRANCH_TO_COMPARE: ${{ github.event.pull_request.base.ref }}
           TYPESCRIPT_REVIEW_PROFILE_PATH: ${{ vars.TYPESCRIPT_REVIEW_PROFILE_PATH }}
           TYPESCRIPT_REVIEW_PROFILE_KEY: ${{ secrets.TYPESCRIPT_REVIEW_PROFILE_KEY }}
         run: npm run start
