@@ -1,0 +1,23 @@
+{
+  "name": "@el_velo/command-executor",
+  "version": "1.0.0",
+  "description": "",
+  "types": "./dist/index.d.ts",
+  "author": "Adrian Ferreres Esteller",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "build": "tsc -b tsconfig.json",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+     "@el_velo/common": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.5",
+    "@vitest/coverage-v8": "^4.1.8",
+    "vitest": "^4.1.8"
+  }
+}

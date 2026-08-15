@@ -26,6 +26,8 @@ async function startTest(): Promise<void> {
 
 startTest().then(() => {
     console.log('Test completed successfully.');
+    process.exit(0);
 }).catch((error) => {
     console.error('Error during test execution:', error);
+    process.exit(1);
 });
