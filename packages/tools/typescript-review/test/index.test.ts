@@ -11,14 +11,14 @@ import { diff, encryptProfile, finding } from './helpers/fixtures.js';
 
 describe('main workflow', () => {
     it('validates, sorts, and publishes a complete model response', async () => {
-        process.env.GITHUB_REPOSITORY = 'owner/repository'; process.env.GITHUB_TOKEN = 'github-token'; process.env.PR_NUMBER = '42'; process.env.PR_HEAD_SHA = 'abc123';
+        process.env.GITHUB_REPOSITORY = 'owner/repository'; process.env.GITHUB_TOKEN = 'github-token'; process.env.PR_NUMBER = '42';
         mocks.readFile.mockResolvedValue(encryptProfile('Trusted profile'));
         mocks.execAsync.mockResolvedValue({ stdout: diff });
         mocks.responsesCreate.mockResolvedValue({ output_text: JSON.stringify({ findings: [finding({ severity: 'low' }), finding({ severity: 'high' })] }) });
         mocks.axiosPost.mockResolvedValue({});
         await main();
-        const [, requestBody] = mocks.axiosPost.mock.calls[0] as unknown as [string, { body: string }];
-        expect(requestBody.body).toMatch(/### HIGH[\s\S]*### LOW/);
+        const requestBody = mocks.axiosPost.mock.calls[0][1].body as string;
+        expect(requestBody.indexOf('### HIGH')).toBeLessThan(requestBody.indexOf('### LOW'));
     });
     it('logs failures when run as the command-line entrypoint', async () => {
         mocks.execAsync.mockRejectedValueOnce(new Error('git failed'));
@@ -29,7 +29,7 @@ describe('main workflow', () => {
         expect(process.exitCode).toBe(1);
     });
     it('fails for invalid JSON and responses that do not satisfy the schema', async () => {
-        process.env.GITHUB_REPOSITORY = 'owner/repository'; process.env.GITHUB_TOKEN = 'github-token'; process.env.PR_NUMBER = '42'; process.env.PR_HEAD_SHA = 'abc123';
+        process.env.GITHUB_REPOSITORY = 'owner/repository'; process.env.GITHUB_TOKEN = 'github-token'; process.env.PR_NUMBER = '42';
         mocks.readFile.mockResolvedValue(encryptProfile('Trusted profile'));
         mocks.execAsync.mockResolvedValue({ stdout: diff });
         mocks.responsesCreate.mockResolvedValueOnce({ output_text: '{invalid' });

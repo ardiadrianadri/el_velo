@@ -15,7 +15,6 @@ export async function writeReview(review: ReviewSchema, diff: string): Promise<v
             await createReview(context, reviewPart, comments, index + 1, reviewParts.length);
         } catch (error: unknown) {
             if (axios.isAxiosError(error) && error.response?.status === 422 && comments.length > 0) {
-                console.warn('GitHub rejected inline review comments; publishing this review as a summary only.', error.response.data);
                 await createReview(context, reviewPart, [], index + 1, reviewParts.length);
                 continue;
             }

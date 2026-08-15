@@ -107,7 +107,6 @@ export interface GitHubContext {
     owner: string;
     repo: string;
     pullNumber: number;
-    headSha: string;
     token: string;
 }
 
