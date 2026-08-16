@@ -1,0 +1,29 @@
+{
+  "name": "@el_velo/command-executor-test",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Adrian Ferreres Esteller",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "start": "node dist/index.js",
+    "test:e2e": "npm run build && npm run start"
+  },
+  "devDependencies": {
+    "@el_velo/common": "^1.0.0",
+    "@el_velo/command-executor": "^1.0.0",
+    "@el_velo/docker-orchestator": "^1.0.0",
+    "@types/node": "^25.9.5",
+    "@typescript-eslint/eslint-plugin": "^8.67.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "axios": "^1.19.0",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "prettier": "^3.9.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
