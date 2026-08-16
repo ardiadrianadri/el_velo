@@ -1,23 +1,6 @@
 import type { Environment } from './environment.js';
+import type { Result } from './result.js';
 
-export interface TestError {
-    message: string;
-    cause?: unknown;
-}
-
-export interface TestResult {
-    success: boolean;
-    durationMs: number;
-    error?: TestError;
-}
-
-export interface TestDefinition<T> {
-    actions: T[];
-}
-
-export interface Executor<T> {
-    execute (
-        environment: Environment,
-        test: TestDefinition<T>
-    ): Promise<TestResult>;
+export interface Executor <TCommand, TResult> {
+  execute(command: TCommand, environment: Environment): Promise<Result<TResult>>;
 }
