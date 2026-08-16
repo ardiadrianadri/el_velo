@@ -1,15 +1,11 @@
+import { ExecutorCli } from '@el_velo/command-executor';
 import { DockerEnvironment } from '@el_velo/docker-orchestator';
 import type { Service } from '@el_velo/common';
 import { Logger } from '@el_velo/common';
 
 import { ENVIRONMENT_CONFIG } from './config.js';
-import axios from 'axios';
 
-function checkHttpResult(result: string, expectedResult: string): boolean {
-    return result.includes(expectedResult);
-}
-
-function checkCommandResult(result: any, expectedResult: any): boolean {
+function checkResult(result: any, expectedResult: any): boolean {
     return result.code.id === expectedResult.code.id &&
         result.code.description === expectedResult.code.description &&
         result.payload.exitCode === expectedResult.payload.exitCode &&
@@ -17,46 +13,38 @@ function checkCommandResult(result: any, expectedResult: any): boolean {
         result.payload.stderr === expectedResult.payload.stderr;
 }
 
+
 async function startTest(): Promise<void> {
     const logger = new Logger();
-    const objectName = 'Docker orquestator test';
+    const objectName = 'Command executor test';
     const methodName = 'startTest';
 
-    const httpExpectedResult = 'If you see this page, nginx is successfully installed and working';
-    const commandExpectedResult = {
+    const expectedResult = {
         code: {
             id: '0000',
             description: 'Operation completed successfully.'
         },
         payload: {
             exitCode: 0,
-            stdout: 'Hello world!\n',
+            stdout: 'Hello, World!\n',
             stderr: '',
             durationMs: 34
         }
     };
 
-    logger.info(objectName, methodName, 'Starting docker container test...');
+    logger.info(objectName, methodName, 'Starting command executor test...');
     const services: Service[] = ENVIRONMENT_CONFIG;
     const dockerEnvironment = new DockerEnvironment(services, services[1].name);
-    const results = await dockerEnvironment.start();
+    const executor = new ExecutorCli();
+    await dockerEnvironment.start();
+    const result = await executor.execute(['echo', 'Hello, World!'], dockerEnvironment);
 
-    const response = await axios.get(results.payload[0].url);
-
-    if (!checkHttpResult(response.data, httpExpectedResult)) {
-        logger.error(objectName, methodName, new Error('HTTP response does not match expected result.'));
-        throw new Error('HTTP response does not match expected result.');
-    }
-
-    console.log('Response from backend service:', response.data);
-    const commandResult = await dockerEnvironment.exec(['echo', 'Hello world!']);
-    console.log('Command result from backend service:', commandResult);
-
-    if (!checkCommandResult(commandResult, commandExpectedResult)) {
+    if (!checkResult(result, expectedResult)) {
         logger.error(objectName, methodName, new Error('Command execution result does not match expected result.'));
         throw new Error('Command execution result does not match expected result.');
     }
 
+    logger.info(objectName, methodName, `Command execution result: ${JSON.stringify(result)}`);
     await dockerEnvironment.stop();
 }
 
