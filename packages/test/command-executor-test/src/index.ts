@@ -35,7 +35,7 @@ async function startTest(): Promise<void> {
     logger.info(objectName, methodName, 'Starting command executor test...');
     const services: Service[] = ENVIRONMENT_CONFIG;
     const dockerEnvironment = new DockerEnvironment(services, services[1].name);
-    const executor = new ExecutorCli();
+    const executor = new ExecutorCli(logger);
     await dockerEnvironment.start();
     const result = await executor.execute(['echo', 'Hello, World!'], dockerEnvironment);
 
