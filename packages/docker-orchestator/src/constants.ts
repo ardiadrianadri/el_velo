@@ -60,14 +60,6 @@ export const CODES: Record<string, Code> = {
     }
 };
 
-export enum  EnvironmentState {
-    STOPPED = 'STOPPED',
-    STARTING = 'STARTING',
-    STARTED = 'STARTED',
-    STOPPING = 'STOPPING',
-    FAILED = 'FAILED',
-}
-
 export const DEFAULT_NETWORK = 'default_network';
 
 export const PORTS_REXP =

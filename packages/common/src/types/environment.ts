@@ -1,5 +1,6 @@
 import type { WaitStrategy } from 'testcontainers';
 import type { Result } from './result.js';
+import type { Observable } from 'rxjs';
 
 export interface Service {
     name: string;
@@ -26,8 +27,17 @@ export interface ExposedUrl {
 export interface Environment {
     services: Service[];
     entrypoint: string;
+    state: Observable<EnvironmentState>;
 
     start(): Promise<Result<ExposedUrl[]>>;
     stop(): Promise<Result<void>>;
     exec(command: string[], options?: { timeoutMs?: number }): Promise<Result<CommandResult>>
+}
+
+export enum  EnvironmentState {
+    STOPPED = 'STOPPED',
+    STARTING = 'STARTING',
+    STARTED = 'STARTED',
+    STOPPING = 'STOPPING',
+    FAILED = 'FAILED',
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { VeloError } from '@el_velo/common';
+import { EnvironmentState, VeloError } from '@el_velo/common';
 
-import { CODES, EnvironmentState } from '../src/constants.js';
+import { CODES } from '../src/constants.js';
 import {
     mockContainer,
     mockContainerBuilder,
@@ -28,6 +28,7 @@ import { DockerEnvironment } from '../src/environment.js';
 
 describe('DockerEnvironment test', () => {
     let env: DockerEnvironment;
+    let stateChanges: EnvironmentState[];
     beforeEach(() => {
         env = new DockerEnvironment(
             [{ name: 'app', image: 'node' }],
@@ -37,6 +38,8 @@ describe('DockerEnvironment test', () => {
             dockerServiceValidator as any
             
         );
+        stateChanges = [];
+        env.state.subscribe(state => stateChanges.push(state));
     });
 
     afterEach(() => {
@@ -54,7 +57,9 @@ describe('DockerEnvironment test', () => {
             );
 
             expect(env.entrypoint).toBe('app');
-            expect(env.state).toBe(EnvironmentState.STOPPED);
+            const states: EnvironmentState[] = [];
+            env.state.subscribe(state => states.push(state));
+            expect(states).toEqual([EnvironmentState.STOPPED]);
         });
 
         it('should throw if entrypoint does not exist', () => {
@@ -96,7 +101,7 @@ describe('DockerEnvironment test', () => {
             const result = await env.start();
 
             expect(result.code).toBe(CODES.SUCCESS);
-            expect(env.state).toBe(EnvironmentState.STARTED);
+            expect(stateChanges).toEqual([EnvironmentState.STOPPED, EnvironmentState.STARTING, EnvironmentState.STARTED]);
             expect(networkStartMock).toHaveBeenCalledOnce();
             expect(mockContainerBuilder.start).toHaveBeenCalledOnce();
         });
@@ -111,7 +116,24 @@ describe('DockerEnvironment test', () => {
             networkStartMock.mockRejectedValueOnce(new Error(errorMsg));
 
             await expect(env.start()).rejects.toThrow(errorMsg);
-            expect(env.state).toBe(EnvironmentState.FAILED);
+            expect(stateChanges).toEqual([EnvironmentState.STOPPED, EnvironmentState.STARTING, EnvironmentState.FAILED]);
+        });
+
+        it('should configure services without a network when none is available', async () => {
+            networkStartMock.mockResolvedValueOnce(null);
+
+            await expect(env.start()).resolves.toMatchObject({ code: CODES.SUCCESS });
+
+            expect(mockContainerBuilder.withNetwork).not.toHaveBeenCalled();
+        });
+
+        it('should stop cleanly after a network startup failure', async () => {
+            networkStartMock.mockRejectedValueOnce(new Error('network error'));
+
+            await expect(env.start()).rejects.toThrow('network error');
+            await expect(env.stop()).resolves.toMatchObject({ code: CODES.SUCCESS });
+
+            expect(stateChanges.at(-1)).toBe(EnvironmentState.STOPPED);
         });
 
         it('should fail when the local path does not exist', async () => {
@@ -162,7 +184,7 @@ describe('DockerEnvironment test', () => {
 
             await env.start();
 
-            expect(env.state).toBe(EnvironmentState.STARTED);
+            expect(await getCurrentState(env)).toBe(EnvironmentState.STARTED);
             expect(mockContainerBuilder.withBindMounts).toHaveBeenLastCalledWith([expectedVolume]);
         });
 
@@ -207,14 +229,14 @@ describe('DockerEnvironment test', () => {
                 code: CODES.MAPPED_PORT_IS_NOT_EXPOSED
             });
             expect(mockSocatContainerBuilder.start).not.toHaveBeenCalled();
-            expect(env.state).toBe(EnvironmentState.FAILED);
+            expect(await getCurrentState(env)).toBe(EnvironmentState.FAILED);
         });
 
         it('should rollback when container start fails', async () => {
             const errorMsg = 'container error';
             mockContainerBuilder.start.mockRejectedValueOnce(new Error(errorMsg));
             await expect(env.start()).rejects.toThrow();
-            expect(env.state).toBe(EnvironmentState.FAILED);
+            expect(stateChanges.at(-1)).toBe(EnvironmentState.FAILED);
         });
     });
 
@@ -226,13 +248,65 @@ describe('DockerEnvironment test', () => {
             expect(result.code).toBe(CODES.SUCCESS);
             expect(mockContainer.stop).toHaveBeenCalledOnce();
             expect(mockNetwork.stop).toHaveBeenCalledOnce();
-            expect(env.state).toBe(EnvironmentState.STOPPED);
+            expect(stateChanges).toEqual([
+                EnvironmentState.STOPPED,
+                EnvironmentState.STARTING,
+                EnvironmentState.STARTED,
+                EnvironmentState.STOPPING,
+                EnvironmentState.STOPPED
+            ]);
         });
 
         it('should allow stop when already stopped', async () => {
             const result = await env.stop();
 
             expect(result.code).toBe(CODES.SUCCESS);
+        });
+
+        it('should stop the socat container associated with a mapped port', async () => {
+            const environment = new DockerEnvironment(
+                [{
+                    name: 'app',
+                    image: 'node',
+                    exposePorts: ['3000'],
+                    portsMapping: ['8080:3000']
+                }],
+                'app',
+                mockLogger as any,
+                pathValidationMock as any,
+                dockerServiceValidator as any
+            );
+
+            await environment.start();
+            await environment.stop();
+
+            expect(mockSocatContainer.stop).toHaveBeenCalledOnce();
+        });
+
+        it('should fail when a socat container cannot be stopped', async () => {
+            const environment = new DockerEnvironment(
+                [{
+                    name: 'app',
+                    image: 'node',
+                    exposePorts: ['3000'],
+                    portsMapping: ['8080:3000']
+                }],
+                'app',
+                mockLogger as any,
+                pathValidationMock as any,
+                dockerServiceValidator as any
+            );
+            mockSocatContainer.stop.mockRejectedValueOnce(new Error('socat stop error'));
+
+            await environment.start();
+
+            await expect(environment.stop()).rejects.toMatchObject({ code: CODES.SERVICE_STOP_FAILURE });
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                DockerEnvironment.name,
+                'stop',
+                expect.any(Error),
+                CODES.SOCAT_STOP_FAILED
+            );
         });
 
         it('should fail when network stop fails', async () => {
@@ -243,7 +317,7 @@ describe('DockerEnvironment test', () => {
 
             await env.start();
             await expect(env.stop()).rejects.toThrow();
-            expect(env.state).toBe(EnvironmentState.FAILED);
+            expect(stateChanges.at(-1)).toBe(EnvironmentState.FAILED);
         });
 
         it('should fail when a container stop fails', async () => {
@@ -252,7 +326,7 @@ describe('DockerEnvironment test', () => {
 
             await env.start();
             await expect(env.stop()).rejects.toThrow();
-            expect(env.state).toBe(EnvironmentState.FAILED);
+            expect(stateChanges.at(-1)).toBe(EnvironmentState.FAILED);
         });
     });
 
@@ -288,6 +362,19 @@ describe('DockerEnvironment test', () => {
             await expect(env.exec(['ls'])).rejects.toThrow(errorMsg);
         });
 
+        it('should preserve the execution failure code when a timed command fails before timing out', async () => {
+            mockExec.mockRejectedValueOnce(new Error('Error executing command'));
+            await env.start();
+
+            await expect(env.exec(['ls'], { timeoutMs: 1000 })).rejects.toThrow('Error executing command');
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                DockerEnvironment.name,
+                'exec',
+                expect.any(Error),
+                CODES.COMMAND_EXECUTION_FAILURE
+            );
+        });
+
         it('should throw timeout error', async () => {
             vi.useFakeTimers();
             mockExec.mockImplementationOnce(() => {
@@ -313,3 +400,7 @@ describe('DockerEnvironment test', () => {
         });
     });
 });
+
+async function getCurrentState(environment: DockerEnvironment): Promise<EnvironmentState> {
+    return await new Promise(resolve => { environment.state.subscribe(resolve).unsubscribe(); });
+}

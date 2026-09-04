@@ -28,6 +28,7 @@ export const mockContainerBuilder = {
 };
 
 export const mockSocatContainer = {
+    stop: vi.fn(),
     getMappedPort: vi.fn(),
     getHost: vi.fn()
 };

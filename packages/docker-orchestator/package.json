@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@el_velo/common": "^1.0.0",
+    "rxjs": "^7.8.2",
     "testcontainers": "^12.1.0"
   }
 }
