@@ -3,10 +3,12 @@ import type { StartedNetwork, StartedTestContainer, ExecResult, StartedSocatCont
 import { Network, GenericContainer, SocatContainer } from 'testcontainers';
 import type { Code, Service, Environment, ExposedUrl, CommandResult } from '@el_velo/common';
 import { join } from 'node:path';
-import { Logger, Result, VeloError, PathValidation } from '@el_velo/common';
+import { Logger, Result, VeloError, PathValidation, EnvironmentState } from '@el_velo/common';
+import { BehaviorSubject } from 'rxjs';
+import type { Observable } from 'rxjs';
 
 import type { Volume, RunningContainer, PortMapping } from './types.js';
-import { CODES, EnvironmentState } from './constants.js';
+import { CODES } from './constants.js';
 import type { BindMode } from 'testcontainers/build/types.js';
 import { DockerServiceValidator } from './validator.js';
 
@@ -21,10 +23,10 @@ export class DockerEnvironment implements Environment {
     private network: StartedNetwork | null = null;
     private containers: Record<string, StartedTestContainer> = {};
     private socatContainers: Record<string, StartedSocatContainer> = {};
-    private _state: EnvironmentState = EnvironmentState.STOPPED;
+    private _state: BehaviorSubject<EnvironmentState> = new BehaviorSubject<EnvironmentState>(EnvironmentState.STOPPED);
 
-    get state(): EnvironmentState {
-        return this._state;
+    get state(): Observable<EnvironmentState> {
+        return this._state.asObservable();
     }
 
     /**
@@ -76,7 +78,7 @@ export class DockerEnvironment implements Environment {
         const methodName = 'start';
         this.logger.info(DockerEnvironment.name, methodName, 'Starting environment');
 
-        if (this._state !== EnvironmentState.STOPPED && this._state !== EnvironmentState.FAILED) {
+        if (this._state.getValue() !== EnvironmentState.STOPPED && this._state.getValue() !== EnvironmentState.FAILED) {
             const error = new VeloError(CODES.ENVIRONMENT_ALREADY_STARTED, 'The environment has already been started.');
             this.logger.error(DockerEnvironment.name, methodName, error);
             throw error;
@@ -139,7 +141,7 @@ export class DockerEnvironment implements Environment {
         const methodName = 'stop';
         this.logger.info(DockerEnvironment.name, methodName, 'Stoping environment');
 
-        if (this._state === EnvironmentState.STOPPED) {
+        if (this._state.getValue() === EnvironmentState.STOPPED) {
             return new Result<void>(CODES.SUCCESS, undefined);
         }
 
@@ -212,7 +214,7 @@ export class DockerEnvironment implements Environment {
 
         let timeoutHandle: NodeJS.Timeout | undefined = undefined;
 
-        if (this._state !== EnvironmentState.STARTED) {
+        if (this._state.getValue() !== EnvironmentState.STARTED) {
             const error = new VeloError(CODES.ENVIRONMENT_NOT_STARTED, 'The environment has not been started.');
             this.logger.error(DockerEnvironment.name, methodName, error);
             throw error;
@@ -376,8 +378,8 @@ export class DockerEnvironment implements Environment {
 
     private changeState(newState: EnvironmentState): void {
         const methodName = 'changeState';
-        this.logger.info(DockerEnvironment.name, methodName, `Changing environment state from ${this._state} to ${newState}`);
+        this.logger.info(DockerEnvironment.name, methodName, `Changing environment state from ${this._state.getValue()} to ${newState}`);
 
-        this._state = newState;
+        this._state.next(newState);
     }
 }
