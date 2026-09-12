@@ -1,6 +1,6 @@
-import type { Executor, Environment, Logger } from '@el_velo/common';
+import type { Executor, Environment } from '@el_velo/common';
 import { CODES, HttpMethod, type HttpCommand, type HttpResult } from './config.js';
-import { Result, EnvironmentState, timeoutDuration, VeloError } from '@el_velo/common';
+import { Result, EnvironmentState, timeoutDuration, VeloError, Logger } from '@el_velo/common';
 import { filter, firstValueFrom, timeout, throwError } from 'rxjs';
 
 import axios from 'axios';
@@ -8,7 +8,7 @@ import type { AxiosRequestConfig } from 'axios';
 
 export class HttpExecutor implements Executor<HttpCommand, HttpResult> {
 
-    constructor(private logger: Logger) {}
+    constructor(private logger: Logger = new Logger()) {}
 
     async execute(command: HttpCommand, environment: Environment): Promise<Result<HttpResult>> {
         const MethodName = 'execute';
