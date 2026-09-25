@@ -29,7 +29,7 @@
     "@nx/eslint": "^23.1.0",
     "@nx/vitest": "^23.2.1",
     "nx": "^23.0.0",
-    "typescript-eslint": "^8.70.0",
+    "typescript-eslint": "^8.70.1",
     "vite": "^8.3.0",
     "vitest": "^4.1.10"
   }
