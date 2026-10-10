@@ -1,0 +1,24 @@
+{
+  "name": "@el_velo/playwright-executor",
+  "version": "1.0.0",
+  "description": "",
+  "types": "./dist/index.d.ts",
+  "author": "Adrian Ferreres Esteller",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "build": "tsc -b tsconfig.json",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@el_velo/common": "^1.0.0",
+    "playwright": "^1.63.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.6",
+    "@vitest/coverage-v8": "^4.1.8",
+    "vitest": "^4.1.8"
+  }
+}
