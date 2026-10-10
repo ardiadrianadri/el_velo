@@ -1,4 +1,4 @@
-import type { PlaywrightCommand, Executor, PlaywrightResult, Environment, PlaywrightConnection, NavigateCommandPayload, Result } from '@el_velo/common';
+import type { PlaywrightCommand, Executor, PlaywrightResult, Environment, PlaywrightConnection, Result } from '@el_velo/common';
 import { Logger, PlaywrightConnectionType, BrowserName, VeloError, timeoutDuration, EnvironmentState, PlaywrightCommandType } from '@el_velo/common';
 import { chromium, firefox, webkit } from 'playwright';
 import type { BrowserType, Browser } from 'playwright';
