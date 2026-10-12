@@ -115,7 +115,7 @@ export class DockerEnvironment implements Environment {
                     const { exposedPort, soc } = portMap;
                     const urlPort = soc.getMappedPort(exposedPort);
                     return {
-                        url: `http://${soc.getHost()}:${urlPort}`
+                        url: `${soc.getHost()}:${urlPort}`
                     };
                 });
                 return new Result<ExposedUrl[]>(CODES.SUCCESS, exposedUrl);
