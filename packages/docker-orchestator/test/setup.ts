@@ -30,6 +30,7 @@ beforeEach(() => {
     networkStartMock.mockResolvedValue(mockNetwork);
     mockNetwork.stop.mockResolvedValue(undefined);
     mockContainer.stop.mockResolvedValue(undefined);
+    mockSocatContainer.stop.mockResolvedValue(undefined);
 
     mockExec.mockResolvedValue({
         exitCode: 0,

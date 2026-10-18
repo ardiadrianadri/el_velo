@@ -1,3 +1,7 @@
 export * from './codes.js';
 export * from './result.js';
 export * from './veloError.js';
+export * from './environment.js';
+export * from './executor.js';
+export * from './globalConfig.js';
+export * from './playwright-commands.js';

@@ -1,7 +1,7 @@
 import { Validator } from '@cfworker/json-schema';
 import type { ValidationResult } from '@cfworker/json-schema';
 
-import type { Service } from './types.js';
+import type { Service } from '@el_velo/common';
 import { SERVICE_JSON_SCHEMA } from './constants.js';
 
 export class DockerServiceValidator {

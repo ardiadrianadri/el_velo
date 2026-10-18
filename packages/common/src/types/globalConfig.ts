@@ -1,0 +1,1 @@
+export const timeoutDuration = process.env.ENVIRONMENT_TIMEOUT ? parseInt(process.env.ENVIRONMENT_TIMEOUT) : 360000;

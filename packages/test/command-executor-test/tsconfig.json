@@ -1,0 +1,24 @@
+{
+ "extends": "../../../tsconfig.base.json",
+ "compilerOptions": {
+  "outDir": "./dist",
+  "rootDir": "./src",
+ },
+
+  "include": [
+    "src/**/*.ts"
+  ],
+
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+
+  "references": [{
+    "path": "../../common",
+  }, {
+    "path": "../../docker-orchestator"
+  }, {
+    "path": "../../executors/command-executor"
+  }]
+}

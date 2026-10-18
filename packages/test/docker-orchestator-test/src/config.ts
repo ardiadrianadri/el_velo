@@ -1,4 +1,4 @@
-import type { Service } from '@el_velo/docker-orchestator';
+import type { Service } from '@el_velo/common';
 
 export const ENVIRONMENT_CONFIG: Service[] = [
     {
