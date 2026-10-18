@@ -15,10 +15,10 @@
   "devDependencies": {
     "@cfworker/json-schema": "^4.1.1",
     "@types/node": "^25.9.9",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.2",
     "axios": "^1.20.0",
     "openai": "^6.49.0",
     "pxpipe-proxy": "^0.14.0",
-    "vitest": "^4.1.8"
+    "vitest": "^5.0.2"
   }
 }
