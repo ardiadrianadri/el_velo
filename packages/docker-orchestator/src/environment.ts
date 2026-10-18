@@ -115,7 +115,7 @@ export class DockerEnvironment implements Environment {
                     const { exposedPort, soc } = portMap;
                     const urlPort = soc.getMappedPort(exposedPort);
                     return {
-                        url: `http://${soc.getHost()}:${urlPort}`
+                        url: `${soc.getHost()}:${urlPort}`
                     };
                 });
                 return new Result<ExposedUrl[]>(CODES.SUCCESS, exposedUrl);
@@ -256,7 +256,7 @@ export class DockerEnvironment implements Environment {
         const methodName = 'setVolumen';
         this.logger.debug(DockerEnvironment.name, methodName, `Setting up containers volume ${volumen}`);
         const volumenParts = volumen.split(':').map((part, index) => {
-            return index === 2 ? part.trim() : join(process.cwd(), part.trim());
+            return index === 0 ? join(process.cwd(), part.trim()) : part.trim();
         });
 
         if (!await this.pathValidation.validate(volumenParts[0])) {
@@ -308,10 +308,13 @@ export class DockerEnvironment implements Environment {
         const ports = service.exposePorts && service.exposePorts.length > 0
             ? service.exposePorts.map(num => Number.parseInt(num))
             : [];
-        const genericContainer = new GenericContainer(service.image)
-            .withCommand(service.command ?? [])
+        let genericContainer = new GenericContainer(service.image)
             .withExposedPorts(...ports)
             .withEnvironment(service.environment ?? {});
+
+        if (Array.isArray(service.command) && service.command.length > 0) {
+            genericContainer = genericContainer.withCommand(service.command);
+        }
 
         let socs: PortMapping[] = [];
 

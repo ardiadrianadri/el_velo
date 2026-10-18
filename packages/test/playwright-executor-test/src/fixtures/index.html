@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Velo E2E Fixture</title>
+</head>
+<body>
+    <main id="app">
+        <h1>Velo Playwright Tests</h1>
+
+        <form id="login">
+            <label for="username">Usuario</label>
+            <input id="username" name="username">
+
+            <button id="submit" type="submit">
+                Entrar
+            </button>
+        </form>
+
+        <p id="result" hidden></p>
+    </main>
+
+    <script>
+        document.querySelector('#login')
+            .addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                const username =
+                    document.querySelector('#username').value;
+
+                const result = document.querySelector('#result');
+                result.textContent = `Hola, ${username}`;
+                result.hidden = false;
+            });
+    </script>
+</body>
+</html>

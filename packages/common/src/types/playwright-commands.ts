@@ -98,8 +98,7 @@ export interface PlaywrightResult {
 }
 
 export enum PlaywrightConnectionType {
-    SERVER = 'server',
-    CDP = 'cdp',
+    SERVER = 'server'
 }
 
 export enum BrowserName {
