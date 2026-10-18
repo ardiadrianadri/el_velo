@@ -1,9 +1,9 @@
-import { 
-    BrowserName, 
-    type PlaywrightCommand, 
-    PlaywrightConnectionType, 
-    type PlaywrightConnection, 
-    type Service, 
+import {
+    BrowserName,
+    type PlaywrightCommand,
+    PlaywrightConnectionType,
+    type PlaywrightConnection,
+    type Service,
     PlaywrightCommandType
 } from '@el_velo/common';
 
@@ -24,13 +24,13 @@ export const ENVIRONMENT_SERVER_CONFIG: Service[] = [{
 export const PLAYWRIGHT_SERVER_CONNECTIONS: Partial<PlaywrightConnection>[] = [{
     type: PlaywrightConnectionType.SERVER,
     browser: BrowserName.CHROMIUM,
-}/*, {
+}, {
     type: PlaywrightConnectionType.SERVER,
     browser: BrowserName.FIREFOX,
 }, {
     type: PlaywrightConnectionType.SERVER,
     browser: BrowserName.WEBKIT,
-}*/];
+}];
 
 export const PLAYWRIGHT_COMMANDS: PlaywrightCommand[] = [{
     type: PlaywrightCommandType.NAVIGATE,
@@ -49,3 +49,5 @@ export const PLAYWRIGHT_COMMANDS: PlaywrightCommand[] = [{
         selector: '#submit'
     }
 }];
+
+export const TEST_VALIDATION = '<p id="result">Hola, el velo</p>';

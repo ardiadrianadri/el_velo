@@ -16,16 +16,15 @@ vi.mock('playwright', async () => {
     return { chromium: mocks.chromium, firefox: mocks.firefox, webkit: mocks.webkit };
 });
 import { CODES } from '../src/config.js';
-import { PlaywrightExecutor } from '../src/playrightExecutor.js';
+import { PlaywrightExecutor } from '../src/playwrightExecutor.js';
 
 describe('PlaywrightExecutor', () => {
     beforeEach(resetMocks);
     afterEach(() => vi.useRealTimers());
 
-    it('validates connection type and URL at construction', () => {
-        expect(() => new PlaywrightExecutor(connection(PlaywrightConnectionType.CDP, BrowserName.FIREFOX) as any, logger as any)).toThrow(VeloError);
+    it('validates the URL at construction', () => {
         expect(() => new PlaywrightExecutor(connection(PlaywrightConnectionType.SERVER, BrowserName.CHROMIUM, 'not a URL') as any, logger as any)).toThrow(VeloError);
-        expect(logger.error).toHaveBeenCalledTimes(2);
+        expect(logger.error).toHaveBeenCalledOnce();
     });
 
     it('uses the fallback URL message when URL construction throws a non-Error', () => {
@@ -49,12 +48,12 @@ describe('PlaywrightExecutor', () => {
         expect(browser.close).toHaveBeenCalledOnce();
     });
 
-    it('connects through CDP and creates a new page for navigation', async () => {
-        const executor = new PlaywrightExecutor(connection(PlaywrightConnectionType.CDP) as any, logger as any);
+    it('connects through the Playwright server and creates a new page for navigation', async () => {
+        const executor = new PlaywrightExecutor(connection(PlaywrightConnectionType.SERVER) as any, logger as any);
         const result = executor.execute([{ type: PlaywrightCommandType.NAVIGATE, payload: { url: 'https://example.com' } }] as any, environment as any);
         state.next(EnvironmentState.STARTED);
         await expect(result).resolves.toMatchObject({ code: CODES.SUCCESS });
-        expect(chromium.connectOverCDP).toHaveBeenCalledWith('ws://localhost');
+        expect(chromium.connect).toHaveBeenCalledWith('ws://localhost');
         expect(browser.newPage).toHaveBeenCalledTimes(2);
         expect(page.goto).toHaveBeenCalledWith('https://example.com');
     });

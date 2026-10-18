@@ -1,5 +1,5 @@
 import type { PlaywrightCommand, Executor, PlaywrightResult, Environment, PlaywrightConnection, Result } from '@el_velo/common';
-import { Logger, PlaywrightConnectionType, BrowserName, VeloError, timeoutDuration, EnvironmentState, PlaywrightCommandType } from '@el_velo/common';
+import { Logger, BrowserName, VeloError, timeoutDuration, EnvironmentState, PlaywrightCommandType } from '@el_velo/common';
 import { chromium, firefox, webkit } from 'playwright';
 import type { BrowserType, Browser } from 'playwright';
 import { filter, firstValueFrom, timeout } from 'rxjs';
@@ -26,12 +26,6 @@ export class PlaywrightExecutor implements Executor<PlaywrightCommand[], Playwri
         const methodName = 'validateConfiguration';
         this.logger.debug(PlaywrightExecutor.name, methodName, 'Validating configuration...');
 
-        if (playwrightConnection.type === PlaywrightConnectionType.CDP && playwrightConnection.browser !== BrowserName.CHROMIUM) {
-            const newError = new VeloError(CODES.INVALID_CONFIGURATION, `CDP connection type is only supported for Chromium browser. Provided browser: ${playwrightConnection.browser}`);
-            this.logger.error(PlaywrightExecutor.name, methodName, newError);
-            throw newError;
-        }
-
         try {
             new URL(playwrightConnection.url);
         }
@@ -43,13 +37,6 @@ export class PlaywrightExecutor implements Executor<PlaywrightCommand[], Playwri
         }
 
         return true;
-    }
-
-
-    private connectByCDP(chromium: BrowserType, url: string): Promise<Browser> {
-        const methodName = 'connectByCDP';
-        this.logger.debug(PlaywrightExecutor.name, methodName, `Connecting to Chromium browser via CDP at URL: ${url}`);
-        return chromium.connectOverCDP(url);
     }
 
     private async connectByServer(browserType: BrowserType, url: string): Promise<Browser> {
@@ -78,11 +65,7 @@ export class PlaywrightExecutor implements Executor<PlaywrightCommand[], Playwri
 
         const browserType = this.browserInstances[this.playwrightConnection.browser];
 
-        if (this.playwrightConnection.type === PlaywrightConnectionType.CDP) {
-            this.browserInstance = await this.connectByCDP(browserType, this.playwrightConnection.url);
-        } else {
-            this.browserInstance = await this.connectByServer(browserType, this.playwrightConnection.url);
-        }
+        this.browserInstance = await this.connectByServer(browserType, this.playwrightConnection.url);
 
         let page = await this.browserInstance.newPage();
 

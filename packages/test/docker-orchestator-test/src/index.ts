@@ -1,6 +1,7 @@
 import { DockerEnvironment } from '@el_velo/docker-orchestator';
-import type { Service } from '@el_velo/common';
+import { type Service, EnvironmentState } from '@el_velo/common';
 import { Logger } from '@el_velo/common';
+import { filter, firstValueFrom } from 'rxjs';
 
 import { ENVIRONMENT_CONFIG } from './config.js';
 import axios from 'axios';
@@ -40,15 +41,17 @@ async function startTest(): Promise<void> {
     const services: Service[] = ENVIRONMENT_CONFIG;
     const dockerEnvironment = new DockerEnvironment(services, services[1].name);
     const results = await dockerEnvironment.start();
-
-    const response = await axios.get(results.payload[0].url);
+    const waitUntilEnvironmentReady = dockerEnvironment.state.pipe(
+        filter(state => state === EnvironmentState.STARTED)
+    );
+    await firstValueFrom(waitUntilEnvironmentReady);
+    const response = await axios.get(`http://${results.payload[0].url}`);
 
     if (!checkHttpResult(response.data, httpExpectedResult)) {
         logger.error(objectName, methodName, new Error('HTTP response does not match expected result.'));
         throw new Error('HTTP response does not match expected result.');
     }
 
-    console.log('Response from backend service:', response.data);
     const commandResult = await dockerEnvironment.exec(['echo', 'Hello world!']);
     console.log('Command result from backend service:', commandResult);
 

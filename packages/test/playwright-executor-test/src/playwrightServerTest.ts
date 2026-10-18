@@ -37,7 +37,8 @@ async function runCommands(executor: PlaywrightExecutor, commands: PlaywrightCom
     return result;
 }
 
-export async function runPlaywrightServerTest(): Promise<void> {
+export async function runPlaywrightServerTest(): Promise<string[]> {
+    const domResult: string[] = [];
     try {
         const result = await startEnvironment();
         if (result.code.id !== '0000') {
@@ -53,6 +54,7 @@ export async function runPlaywrightServerTest(): Promise<void> {
             if (result.code.id !== '0000') {
                 console.error(`Command execution failed. Code: ${result.code.id}`);
             } else {
+                domResult.push(result.payload.dom);
                 console.log('Command execution succeeded. DOM:', result.payload.dom);
             }
         }
@@ -62,4 +64,5 @@ export async function runPlaywrightServerTest(): Promise<void> {
     } finally {
         await stopEnvironment();
     }
+    return domResult;
 }

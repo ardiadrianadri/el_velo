@@ -208,7 +208,7 @@ describe('DockerEnvironment test', () => {
             expect(mockSocatContainerBuilder.withNetwork).toHaveBeenCalledWith(mockNetwork);
             expect(mockSocatContainerBuilder.withTarget).toHaveBeenCalledWith(8080, 'app', 3000);
             expect(mockSocatContainer.getMappedPort).toHaveBeenCalledWith(8080);
-            expect(result.payload).toEqual([{ url: 'http://localhost:8080' }]);
+            expect(result.payload).toEqual([{ url: 'localhost:8080' }]);
         });
 
         it('should fail when a mapped port is not exposed', async () => {
