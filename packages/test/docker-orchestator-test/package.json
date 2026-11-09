@@ -12,7 +12,7 @@
     "test:e2e": "npm run build && npm run start"
   },
   "devDependencies": {
-    "@cfworker/json-schema": "^4.1.1",
+    "@cfworker/json-schema": "^4.1.4",
     "@el_velo/common": "^1.0.0",
     "@el_velo/docker-orchestator": "^1.0.0",
     "@types/node": "^25.9.9",
