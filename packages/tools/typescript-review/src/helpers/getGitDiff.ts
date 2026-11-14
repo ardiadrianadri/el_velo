@@ -6,7 +6,9 @@ import { config } from '../config.js';
 export async function getGitDiff(): Promise<string> {
     try {
         const execAsync = promisify(execFile);
-        const { stdout } = await execAsync('git', ['diff', '--no-ext-diff', '--find-renames', `origin/${config.branchToCompare}...HEAD`, '--', '*.ts', '*.tsx', '*.mts', '*.cts'], { maxBuffer: config.maxGitDiffBytes });
+        const baseRef = config.reviewBaseSha ?? `origin/${config.branchToCompare}`;
+        const headRef = config.reviewHeadSha ?? 'HEAD';
+        const { stdout } = await execAsync('git', ['diff', '--no-ext-diff', '--no-textconv', '--find-renames', `${baseRef}...${headRef}`, '--', '*.ts', '*.tsx', '*.mts', '*.cts'], { maxBuffer: config.maxGitDiffBytes });
         return stdout;
     } catch (error: unknown) {
         if (error instanceof RangeError && error.message.includes('maxBuffer')) {
