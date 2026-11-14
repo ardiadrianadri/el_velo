@@ -8,6 +8,21 @@ import type {
     JSONObject,
 } from './runtime-definition.js';
 
+export enum VTS_RESOURCE_TYPES {
+    STEP = 'step',
+    STEP_GROUP = 'step-group',
+    CONTEXT = 'context',
+    EXPECTATION = 'expectation',
+    TEST_DEFINITION = 'test-definition',
+    TEST_PLAN = 'test-plan',
+    PLUGIN_CONFIG = 'plugin-config'
+}
+
+export interface VTSResource {
+    id: string;
+    description: string;
+}
+
 export interface VTSCommandAction {
     type: CLI_ACTIONS.RUN_COMMAND;
     command: string;
@@ -137,9 +152,8 @@ export interface VTSWaitAction {
     timeout?: number;
 }
 
-export interface VTSStep {
-    id: string;
-    description: string;
+export interface VTSStep extends VTSResource {
+    type: VTS_RESOURCE_TYPES.STEP;
 }
 
 export interface VTSCliStep extends VTSStep {
@@ -154,16 +168,14 @@ export interface VTSPlaywrightStep extends VTSStep {
     action: VTSPlaywrightActions;
 }
 
-export interface VTSStepGroup {
-    id: string;
-    description: string;
+export interface VTSStepGroup extends VTSResource {
+    type: VTS_RESOURCE_TYPES.STEP_GROUP;
     executor: EXECUTOR_TYPE;
     stepRefs: string[];
 }
 
-export interface VTSContext {
-    id: string;
-    description: string;
+export interface VTSContext extends VTSResource {
+    type: VTS_RESOURCE_TYPES.CONTEXT;
     dockerComposeFilePath: string;
 }
 
@@ -186,30 +198,29 @@ export interface VTSExpectationWithoutExpected extends VTSExpectationBase {
 export type VTSExpectation = VTSExpectationWithExpected | VTSExpectationWithoutExpected;
 
 
-export interface VTSTestDefinition {
-    id: string;
-    description: string;
+export interface VTSTestDefinition extends VTSResource {
+    type: VTS_RESOURCE_TYPES.TEST_DEFINITION;
     tags: string[];
     contextRef: string;
     stepsGroupRef: string;
     expectationsRefs: string[];
 }
 
-export interface VTSPluginConfig {
+export interface VTSPluginConfig extends VTSResource {
+    type: VTS_RESOURCE_TYPES.PLUGIN_CONFIG;
     package: string;
     enabled: boolean;
     options?: JSONObject;
 }
 
-export interface VTSTestPlan {
-    id: string;
-    description: string;
+export interface VTSTestPlan extends VTSResource {
+    type: VTS_RESOURCE_TYPES.TEST_PLAN;
     tags: string[];
     testsRefs: string[];
     plugins?: {
-        beforeRun?: VTSPluginConfig[];
-        beforeTest?: VTSPluginConfig[];
-        afterTest?: VTSPluginConfig[];
-        afterRun?: VTSPluginConfig[];
+        beforeRun?: string[];
+        beforeTest?: string[];
+        afterTest?: string[];
+        afterRun?: string[];
     }
 }
