@@ -82,4 +82,6 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           BRANCH_TO_COMPARE: ${{ github.event.pull_request.base.ref }}
+          TYPESCRIPT_REVIEW_PROFILE_KEY: ${{ secrets.TYPESCRIPT_REVIEW_PROFILE_KEY }}
+          REQUIRE_TRUSTED_REVIEW_PROFILE: 'true'
         run: npm run start

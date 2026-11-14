@@ -6,6 +6,7 @@ export { addLineNumbersToDiff } from './helpers/addLineNumbersToDiff.js';
 export { buildDiffInput } from './helpers/buildDiffInput.js';
 export { buildReviewInstructions } from './helpers/buildReviewInstructions.js';
 export { createReview } from './helpers/createReview.js';
+export { decryptProfile } from './helpers/decryptProfile.js';
 export { getAIAnalysis } from './helpers/getAIAnalysis.js';
 export { getGitDiff } from './helpers/getGitDiff.js';
 export { getGitHubContext } from './helpers/getGitHubContext.js';

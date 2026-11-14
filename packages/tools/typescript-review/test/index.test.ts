@@ -7,16 +7,17 @@ vi.mock('openai', () => ({ default: vi.fn(function OpenAI(): { responses: { crea
 vi.mock('axios', () => ({ default: { post: mocks.axiosPost, isAxiosError: (error: unknown): boolean => Boolean((error as { isAxiosError?: boolean }).isAxiosError) } }));
 
 import { main, run } from '../src/index.js';
-import { diff, finding } from './helpers/fixtures.js';
+import { diff, encryptProfile, finding } from './helpers/fixtures.js';
 
 describe('main workflow', () => {
     it('validates, sorts, and publishes a complete model response', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repository'; process.env.GITHUB_TOKEN = 'github-token'; process.env.PR_NUMBER = '42';
-        mocks.readFile.mockResolvedValue('Trusted profile');
+        mocks.readFile.mockResolvedValue(encryptProfile('Trusted profile'));
         mocks.execAsync.mockResolvedValue({ stdout: diff });
         mocks.responsesCreate.mockResolvedValue({ output_text: JSON.stringify({ findings: [finding({ severity: 'low' }), finding({ severity: 'high' })] }) });
         mocks.axiosPost.mockResolvedValue({});
         await main();
+        expect(mocks.responsesCreate).toHaveBeenCalledWith(expect.objectContaining({ instructions: expect.stringContaining('Trusted profile') }));
         const requestBody = mocks.axiosPost.mock.calls[0][1].body as string;
         expect(requestBody.indexOf('### HIGH')).toBeLessThan(requestBody.indexOf('### LOW'));
     });
@@ -30,7 +31,7 @@ describe('main workflow', () => {
     });
     it('fails for invalid JSON and responses that do not satisfy the schema', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repository'; process.env.GITHUB_TOKEN = 'github-token'; process.env.PR_NUMBER = '42';
-        mocks.readFile.mockResolvedValue('Trusted profile');
+        mocks.readFile.mockResolvedValue(encryptProfile('Trusted profile'));
         mocks.execAsync.mockResolvedValue({ stdout: diff });
         mocks.responsesCreate.mockResolvedValueOnce({ output_text: '{invalid' });
         await expect(main()).rejects.toThrow(SyntaxError);

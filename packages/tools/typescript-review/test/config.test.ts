@@ -12,7 +12,7 @@ interface ReviewConfig {
 
 async function loadConfig(environment: Record<string, string | undefined>): Promise<{ config: ReviewConfig }> {
     vi.resetModules();
-    for (const key of ['TYPESCRIPT_REVIEW_PROFILE_PATH', 'OPENAI_MODEL', 'MAX_GIT_DIFF_BYTES', 'BRANCH_TO_COMPARE']) {
+    for (const key of ['TYPESCRIPT_REVIEW_PROFILE_PATH', 'TYPESCRIPT_REVIEW_PROFILE_KEY', 'OPENAI_MODEL', 'MAX_GIT_DIFF_BYTES', 'BRANCH_TO_COMPARE']) {
         Reflect.deleteProperty(process.env, key);
     }
     Object.assign(process.env, environment);
