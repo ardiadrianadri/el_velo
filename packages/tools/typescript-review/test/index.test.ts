@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ readFile: vi.fn(), execAsync: vi.fn(), responsesCreate: vi.fn(), axiosPost: vi.fn() }));
