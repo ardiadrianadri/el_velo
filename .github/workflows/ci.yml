@@ -9,12 +9,17 @@ on:
       - develop
     paths-ignore:
       - .github/workflows/ci.yml
+  pull_request_target:
+    branches:
+      - main
+      - develop
 
 permissions:
   contents: read
 
 jobs:
   build:
+    if: github.event_name != 'pull_request_target'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,8 +43,7 @@ jobs:
       - name: Vulnerability scan in dependencies
         run: npm audit --audit-level=high --omit=dev
   typescript-review:
-    needs: build
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event.pull_request.base.ref == 'main' && 'production' || 'development'}}
@@ -49,6 +53,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.sha }}
         name: Checkout
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -58,8 +63,34 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
-      - name: Fetch pull request base branch
-        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+      - name: Fetch pull request head commit
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head:refs/remotes/pull/${PR_NUMBER}/head"
+          FETCHED_HEAD="$(git rev-parse "refs/remotes/pull/${PR_NUMBER}/head")"
+          if [ "$FETCHED_HEAD" != "$PR_HEAD_SHA" ]; then
+            echo "The pull request head changed while the review job was starting; rerun the workflow." >&2
+            exit 1
+          fi
+      - name: Load trusted TypeScript review profile
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git show "${PR_BASE_SHA}:.github/ai-review/profiles/typescript-review.md" > "$RUNNER_TEMP/typescript-review.md"
+          echo "TYPESCRIPT_REVIEW_PROFILE_PATH=$RUNNER_TEMP/typescript-review.md" >> "$GITHUB_ENV"
+          if PROFILE_FORMAT="$(git show "${PR_BASE_SHA}:.github/ai-review/profiles/typescript-review.format" 2>/dev/null)"; then
+            :
+          else
+            # Existing base branches without a format marker use the legacy encrypted profile.
+            PROFILE_FORMAT=encrypted
+          fi
+          case "$PROFILE_FORMAT" in
+            plaintext|encrypted) ;;
+            *) echo "Unsupported TypeScript review profile format: $PROFILE_FORMAT" >&2; exit 1 ;;
+          esac
+          printf 'TYPESCRIPT_REVIEW_PROFILE_FORMAT=%s\n' "$PROFILE_FORMAT" >> "$GITHUB_ENV"
       - name: Create GitHub App token
         id: app-token
         uses: actions/create-github-app-token@v3
@@ -73,6 +104,9 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          TYPESCRIPT_REVIEW_PROFILE_PATH: ${{ vars.TYPESCRIPT_REVIEW_PROFILE_PATH }}
+          BRANCH_TO_COMPARE: ${{ github.event.pull_request.base.ref }}
+          REVIEW_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           TYPESCRIPT_REVIEW_PROFILE_KEY: ${{ secrets.TYPESCRIPT_REVIEW_PROFILE_KEY }}
+          REQUIRE_TRUSTED_REVIEW_PROFILE: 'true'
         run: npm run start

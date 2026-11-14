@@ -5,3 +5,5 @@ export * from './environment.js';
 export * from './executor.js';
 export * from './globalConfig.js';
 export * from './playwright-commands.js';
+export * from './runtime-definition.js';
+export * from './vts-definitions.js';

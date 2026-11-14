@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ readFile: vi.fn(), execAsync: vi.fn(), responsesCreate: vi.fn(), axiosPost: vi.fn() }));
 vi.mock('node:fs/promises', () => ({ readFile: mocks.readFile }));
@@ -6,8 +8,13 @@ vi.mock('node:util', () => ({ promisify: vi.fn(() => mocks.execAsync) }));
 vi.mock('openai', () => ({ default: vi.fn(function OpenAI(): { responses: { create: typeof mocks.responsesCreate } } { return { responses: { create: mocks.responsesCreate } }; }) }));
 vi.mock('axios', () => ({ default: { post: mocks.axiosPost, isAxiosError: (error: unknown): boolean => Boolean((error as { isAxiosError?: boolean }).isAxiosError) } }));
 
+import { config } from '../src/config.js';
 import { main, run } from '../src/index.js';
 import { diff, encryptProfile, finding } from './helpers/fixtures.js';
+
+beforeEach(() => {
+    config.reviewProfileFormat = 'encrypted';
+});
 
 describe('main workflow', () => {
     it('validates, sorts, and publishes a complete model response', async () => {
@@ -17,6 +24,7 @@ describe('main workflow', () => {
         mocks.responsesCreate.mockResolvedValue({ output_text: JSON.stringify({ findings: [finding({ severity: 'low' }), finding({ severity: 'high' })] }) });
         mocks.axiosPost.mockResolvedValue({});
         await main();
+        expect(mocks.responsesCreate).toHaveBeenCalledWith(expect.objectContaining({ instructions: expect.stringContaining('Trusted profile') }));
         const requestBody = mocks.axiosPost.mock.calls[0][1].body as string;
         expect(requestBody.indexOf('### HIGH')).toBeLessThan(requestBody.indexOf('### LOW'));
     });
