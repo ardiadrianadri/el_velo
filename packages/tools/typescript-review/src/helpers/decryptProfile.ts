@@ -1,10 +1,8 @@
 import { createDecipheriv, scryptSync } from 'node:crypto';
 
-import { config } from '../config.js';
-
 /** Decrypts a v1 encrypted review profile during migration to plaintext profiles. */
 export function decryptProfile(encryptedProfile: string): string {
-    const encryptionKey = config.profileEncryptionKey;
+    const encryptionKey = process.env.TYPESCRIPT_REVIEW_PROFILE_KEY;
     if (!encryptionKey) {
         throw new Error('TYPESCRIPT_REVIEW_PROFILE_KEY is required to decrypt the review profile.');
     }

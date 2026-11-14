@@ -1,4 +1,4 @@
-import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { resolve, sep } from 'node:path';
 
 import { config } from '../config.js';
 import { decryptProfile } from './decryptProfile.js';
@@ -16,11 +16,14 @@ function requireTrustedProfilePath(): void {
 
     const runnerTemp = process.env.RUNNER_TEMP;
     const configuredProfilePath = process.env.TYPESCRIPT_REVIEW_PROFILE_PATH;
-    const pathFromRunnerTemp = runnerTemp ? relative(resolve(runnerTemp), resolve(config.profilePath)) : '';
     if (!configuredProfilePath || !runnerTemp) {
         throw new Error('The review profile must be loaded from RUNNER_TEMP in the CI review job.');
     }
-    if (!pathFromRunnerTemp || pathFromRunnerTemp === '..' || pathFromRunnerTemp.startsWith(`..${sep}`) || isAbsolute(pathFromRunnerTemp)) {
+
+    const runnerTempPath = resolve(runnerTemp);
+    const profilePath = resolve(config.profilePath);
+    const runnerTempPrefix = runnerTempPath.endsWith(sep) ? runnerTempPath : `${runnerTempPath}${sep}`;
+    if (profilePath === runnerTempPath || !profilePath.startsWith(runnerTempPrefix)) {
         throw new Error('The review profile must be loaded from RUNNER_TEMP in the CI review job.');
     }
 }
