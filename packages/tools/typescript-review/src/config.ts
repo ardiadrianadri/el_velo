@@ -5,8 +5,14 @@ import type { Schema } from '@cfworker/json-schema';
 
 const defaultProfilePath = join(dirname(fileURLToPath(import.meta.url)), '../../../../.github/ai-review/profiles/typescript-review.md');
 const defaultOpenAIModel = 'gpt-5.6-terra';
+const configuredReviewProfileFormat = process.env.TYPESCRIPT_REVIEW_PROFILE_FORMAT;
+const reviewProfileFormat = configuredReviewProfileFormat ?? (process.env.REQUIRE_TRUSTED_REVIEW_PROFILE === 'true' ? undefined : 'plaintext');
 const profilePath: string = process.env.TYPESCRIPT_REVIEW_PROFILE_PATH ?? defaultProfilePath;
 const openAIModel: string = process.env.OPENAI_MODEL ?? defaultOpenAIModel;
+
+if (reviewProfileFormat !== 'plaintext' && reviewProfileFormat !== 'encrypted') {
+    throw new Error('TYPESCRIPT_REVIEW_PROFILE_FORMAT must be set to either "plaintext" or "encrypted".');
+}
 
 const getMaxGitDiffBytes = (): number => {
     const defaultValue = 1024 * 1024;
@@ -32,6 +38,7 @@ export const config = {
     branchToCompare: process.env.BRANCH_TO_COMPARE ?? 'develop',
     openAiApiKey: process.env.OPENAI_API_KEY,
     openAIModel: openAIModel,
+    reviewProfileFormat,
     maxGitDiffBytes: getMaxGitDiffBytes(), // 1 MB
     maxOutputTokens: 16_000,
 };

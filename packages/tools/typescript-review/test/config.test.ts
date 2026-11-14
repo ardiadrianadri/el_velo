@@ -8,11 +8,20 @@ interface ReviewConfig {
     maxOutputTokens: number;
     openAIModel: string;
     profilePath: string;
+    reviewProfileFormat: 'plaintext' | 'encrypted';
 }
 
 async function loadConfig(environment: Record<string, string | undefined>): Promise<{ config: ReviewConfig }> {
     vi.resetModules();
-    for (const key of ['TYPESCRIPT_REVIEW_PROFILE_PATH', 'TYPESCRIPT_REVIEW_PROFILE_KEY', 'OPENAI_MODEL', 'MAX_GIT_DIFF_BYTES', 'BRANCH_TO_COMPARE']) {
+    for (const key of [
+        'TYPESCRIPT_REVIEW_PROFILE_PATH',
+        'TYPESCRIPT_REVIEW_PROFILE_FORMAT',
+        'TYPESCRIPT_REVIEW_PROFILE_KEY',
+        'REQUIRE_TRUSTED_REVIEW_PROFILE',
+        'OPENAI_MODEL',
+        'MAX_GIT_DIFF_BYTES',
+        'BRANCH_TO_COMPARE',
+    ]) {
         Reflect.deleteProperty(process.env, key);
     }
     Object.assign(process.env, environment);
@@ -32,11 +41,13 @@ describe('typescript-review configuration', () => {
         expect(config.maxGitDiffBytes).toBe(1024 * 1024);
         expect(config.maxOutputTokens).toBe(16_000);
         expect(config.profilePath).toContain('.github/ai-review/profiles/typescript-review.md');
+        expect(config.reviewProfileFormat).toBe('plaintext');
     });
 
     it('uses configured values and preserves an absolute profile path', async () => {
         const { config } = await loadConfig({
             TYPESCRIPT_REVIEW_PROFILE_PATH: '/tmp/profile.enc',
+            TYPESCRIPT_REVIEW_PROFILE_FORMAT: 'encrypted',
             OPENAI_MODEL: 'test-model',
             BRANCH_TO_COMPARE: 'main',
             MAX_GIT_DIFF_BYTES: '42',
@@ -44,10 +55,23 @@ describe('typescript-review configuration', () => {
 
         expect(config).toMatchObject({
             profilePath: '/tmp/profile.enc',
+            reviewProfileFormat: 'encrypted',
             openAIModel: 'test-model',
             branchToCompare: 'main',
             maxGitDiffBytes: 42,
         });
+    });
+
+    it('rejects an unsupported review profile format', async () => {
+        await expect(loadConfig({ TYPESCRIPT_REVIEW_PROFILE_FORMAT: 'auto' })).rejects.toThrow(
+            'TYPESCRIPT_REVIEW_PROFILE_FORMAT must be set to either "plaintext" or "encrypted".'
+        );
+    });
+
+    it('requires an explicit review profile format in trusted CI mode', async () => {
+        await expect(loadConfig({ REQUIRE_TRUSTED_REVIEW_PROFILE: 'true' })).rejects.toThrow(
+            'TYPESCRIPT_REVIEW_PROFILE_FORMAT must be set to either "plaintext" or "encrypted".'
+        );
     });
 
     it.each(['not-a-number', 'Infinity', '0', '-1', '1.5'])('falls back for invalid MAX_GIT_DIFF_BYTES: %s', async (value) => {

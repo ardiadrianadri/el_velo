@@ -68,6 +68,17 @@ jobs:
         run: |
           git show "origin/${BRANCH_TO_COMPARE}:.github/ai-review/profiles/typescript-review.md" > "$RUNNER_TEMP/typescript-review.md"
           echo "TYPESCRIPT_REVIEW_PROFILE_PATH=$RUNNER_TEMP/typescript-review.md" >> "$GITHUB_ENV"
+          if PROFILE_FORMAT="$(git show "origin/${BRANCH_TO_COMPARE}:.github/ai-review/profiles/typescript-review.format" 2>/dev/null)"; then
+            :
+          else
+            # Existing base branches without a format marker use the legacy encrypted profile.
+            PROFILE_FORMAT=encrypted
+          fi
+          case "$PROFILE_FORMAT" in
+            plaintext|encrypted) ;;
+            *) echo "Unsupported TypeScript review profile format: $PROFILE_FORMAT" >&2; exit 1 ;;
+          esac
+          printf 'TYPESCRIPT_REVIEW_PROFILE_FORMAT=%s\n' "$PROFILE_FORMAT" >> "$GITHUB_ENV"
       - name: Create GitHub App token
         id: app-token
         uses: actions/create-github-app-token@v3
