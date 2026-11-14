@@ -6,9 +6,7 @@ import type { Schema } from '@cfworker/json-schema';
 const defaultProfilePath = join(dirname(fileURLToPath(import.meta.url)), '../../../../.github/ai-review/profiles/typescript-review.md');
 const defaultOpenAIModel = 'gpt-5.6-terra';
 const requireTrustedReviewProfile = process.env.REQUIRE_TRUSTED_REVIEW_PROFILE !== 'false';
-const configuredReviewProfileFormat = process.env.TYPESCRIPT_REVIEW_PROFILE_FORMAT;
 const configuredProfilePath = process.env.TYPESCRIPT_REVIEW_PROFILE_PATH;
-const reviewProfileFormat = configuredReviewProfileFormat ?? (requireTrustedReviewProfile ? undefined : 'plaintext');
 const profilePath = configuredProfilePath ?? defaultProfilePath;
 const openAIModel: string = process.env.OPENAI_MODEL ?? defaultOpenAIModel;
 const reviewBaseSha = getCommitSha('REVIEW_BASE_SHA');
@@ -31,10 +29,6 @@ function getCommitSha(environmentKey: string): string | undefined {
 
 if (requireTrustedReviewProfile && !configuredProfilePath) {
     throw new Error('TYPESCRIPT_REVIEW_PROFILE_PATH is required when trusted review profile mode is enabled.');
-}
-
-if (reviewProfileFormat !== 'plaintext' && reviewProfileFormat !== 'encrypted') {
-    throw new Error('TYPESCRIPT_REVIEW_PROFILE_FORMAT must be set to either "plaintext" or "encrypted".');
 }
 
 const getMaxGitDiffBytes = (): number => {
@@ -64,7 +58,6 @@ export const config = {
     requireTrustedReviewProfile,
     reviewBaseSha,
     reviewHeadSha,
-    reviewProfileFormat,
     maxGitDiffBytes: getMaxGitDiffBytes(), // 1 MB
     maxOutputTokens: 16_000,
 };
