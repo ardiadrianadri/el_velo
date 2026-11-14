@@ -11,15 +11,12 @@ interface ReviewConfig {
     requireTrustedReviewProfile: boolean;
     reviewBaseSha?: string;
     reviewHeadSha?: string;
-    reviewProfileFormat: 'plaintext' | 'encrypted';
 }
 
 async function loadConfig(environment: Record<string, string | undefined>): Promise<{ config: ReviewConfig }> {
     vi.resetModules();
     for (const key of [
         'TYPESCRIPT_REVIEW_PROFILE_PATH',
-        'TYPESCRIPT_REVIEW_PROFILE_FORMAT',
-        'TYPESCRIPT_REVIEW_PROFILE_KEY',
         'REQUIRE_TRUSTED_REVIEW_PROFILE',
         'REVIEW_BASE_SHA',
         'REVIEW_HEAD_SHA',
@@ -51,14 +48,12 @@ describe('typescript-review configuration', () => {
         expect(config.maxOutputTokens).toBe(16_000);
         expect(config.profilePath).toContain('.github/ai-review/profiles/typescript-review.md');
         expect(config.requireTrustedReviewProfile).toBe(false);
-        expect(config.reviewProfileFormat).toBe('plaintext');
     });
 
     it('uses configured values and preserves an absolute profile path', async () => {
         const { config } = await loadConfig({
             REQUIRE_TRUSTED_REVIEW_PROFILE: 'false',
-            TYPESCRIPT_REVIEW_PROFILE_PATH: '/tmp/profile.enc',
-            TYPESCRIPT_REVIEW_PROFILE_FORMAT: 'encrypted',
+            TYPESCRIPT_REVIEW_PROFILE_PATH: '/tmp/profile.md',
             REVIEW_BASE_SHA: 'a'.repeat(40),
             REVIEW_HEAD_SHA: 'b'.repeat(40),
             OPENAI_MODEL: 'test-model',
@@ -67,9 +62,8 @@ describe('typescript-review configuration', () => {
         });
 
         expect(config).toMatchObject({
-            profilePath: '/tmp/profile.enc',
+            profilePath: '/tmp/profile.md',
             requireTrustedReviewProfile: false,
-            reviewProfileFormat: 'encrypted',
             reviewBaseSha: 'a'.repeat(40),
             reviewHeadSha: 'b'.repeat(40),
             openAIModel: 'test-model',
@@ -92,28 +86,9 @@ describe('typescript-review configuration', () => {
         })).rejects.toThrow('REVIEW_BASE_SHA and REVIEW_HEAD_SHA must be configured together.');
     });
 
-    it('rejects an unsupported review profile format', async () => {
-        await expect(loadConfig({
-            REQUIRE_TRUSTED_REVIEW_PROFILE: 'false',
-            TYPESCRIPT_REVIEW_PROFILE_FORMAT: 'auto',
-        })).rejects.toThrow(
-            'TYPESCRIPT_REVIEW_PROFILE_FORMAT must be set to either "plaintext" or "encrypted".'
-        );
-    });
-
-    it('requires an explicit review profile format in trusted CI mode', async () => {
-        await expect(loadConfig({
-            REQUIRE_TRUSTED_REVIEW_PROFILE: 'true',
-            TYPESCRIPT_REVIEW_PROFILE_PATH: '/tmp/profile.md',
-        })).rejects.toThrow(
-            'TYPESCRIPT_REVIEW_PROFILE_FORMAT must be set to either "plaintext" or "encrypted".'
-        );
-    });
-
     it('requires an explicit profile path in trusted CI mode', async () => {
         await expect(loadConfig({
             REQUIRE_TRUSTED_REVIEW_PROFILE: 'true',
-            TYPESCRIPT_REVIEW_PROFILE_FORMAT: 'plaintext',
         })).rejects.toThrow('TYPESCRIPT_REVIEW_PROFILE_PATH is required');
     });
 
@@ -125,8 +100,8 @@ describe('typescript-review configuration', () => {
     it('resolves a relative profile path from the working directory', async () => {
         const { config } = await loadConfig({
             REQUIRE_TRUSTED_REVIEW_PROFILE: 'false',
-            TYPESCRIPT_REVIEW_PROFILE_PATH: 'profiles/review.enc',
+            TYPESCRIPT_REVIEW_PROFILE_PATH: 'profiles/review.md',
         });
-        expect(config.profilePath).toBe(`${process.cwd()}/profiles/review.enc`);
+        expect(config.profilePath).toBe(`${process.cwd()}/profiles/review.md`);
     });
 });
