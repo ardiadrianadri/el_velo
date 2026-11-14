@@ -59,7 +59,7 @@ async function readTrustedProfile(profilePath: string): Promise<string> {
 }
 
 export function readProfile(profilePath = config.profilePath): Promise<string> {
-    if (process.env.REQUIRE_TRUSTED_REVIEW_PROFILE === 'true') {
+    if (config.requireTrustedReviewProfile) {
         return readTrustedProfile(profilePath);
     }
     return readFile(profilePath, 'utf-8');

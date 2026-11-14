@@ -3,9 +3,9 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { buildReviewInstructions } from '../../src/helpers/buildReviewInstructions.js';
-import { readProfile } from '../../src/helpers/readProfile.js';
 import { encryptProfile } from './fixtures.js';
+import type { buildReviewInstructions as BuildReviewInstructions } from '../../src/helpers/buildReviewInstructions.js';
+import type { readProfile as ReadProfile } from '../../src/helpers/readProfile.js';
 
 const environmentKeys = [
     'REQUIRE_TRUSTED_REVIEW_PROFILE',
@@ -22,9 +22,22 @@ async function createTemporaryDirectory(): Promise<string> {
     return directory;
 }
 
+async function loadProfileHelpers(): Promise<{
+    buildReviewInstructions: typeof BuildReviewInstructions;
+    readProfile: typeof ReadProfile;
+}> {
+    vi.resetModules();
+    const [instructions, profileReader] = await Promise.all([
+        import('../../src/helpers/buildReviewInstructions.js'),
+        import('../../src/helpers/readProfile.js'),
+    ]);
+    return { buildReviewInstructions: instructions.buildReviewInstructions, readProfile: profileReader.readProfile };
+}
+
 function configureTrustedProfile(runnerTemp: string, profilePath: string): void {
     process.env.REQUIRE_TRUSTED_REVIEW_PROFILE = 'true';
     process.env.RUNNER_TEMP = runnerTemp;
+    process.env.TYPESCRIPT_REVIEW_PROFILE_FORMAT = 'plaintext';
     process.env.TYPESCRIPT_REVIEW_PROFILE_PATH = profilePath;
 }
 
@@ -41,9 +54,10 @@ afterEach(async () => {
 
 describe('profile helpers', () => {
     it('loads the checked-in plaintext default profile and appends the trusted boundary', async () => {
-        Reflect.deleteProperty(process.env, 'REQUIRE_TRUSTED_REVIEW_PROFILE');
-        Reflect.deleteProperty(process.env, 'TYPESCRIPT_REVIEW_PROFILE_FORMAT');
+        process.env.REQUIRE_TRUSTED_REVIEW_PROFILE = 'false';
+        process.env.TYPESCRIPT_REVIEW_PROFILE_FORMAT = 'plaintext';
         Reflect.deleteProperty(process.env, 'TYPESCRIPT_REVIEW_PROFILE_PATH');
+        const { readProfile, buildReviewInstructions } = await loadProfileHelpers();
         const profile = await readProfile();
         expect(profile).toContain('# TypeScript senior engineer review profile');
         const instructions = await buildReviewInstructions();
@@ -56,14 +70,10 @@ describe('profile helpers', () => {
         const profilePath = join(runnerTemp, 'profile.md');
         const plaintextProfile = 'v1: this is ordinary plaintext, not ciphertext';
         await writeFile(profilePath, plaintextProfile);
-        Reflect.deleteProperty(process.env, 'REQUIRE_TRUSTED_REVIEW_PROFILE');
+        process.env.REQUIRE_TRUSTED_REVIEW_PROFILE = 'false';
         process.env.TYPESCRIPT_REVIEW_PROFILE_FORMAT = 'plaintext';
         process.env.TYPESCRIPT_REVIEW_PROFILE_PATH = profilePath;
-        vi.resetModules();
-
-        const { buildReviewInstructions: buildWithConfiguredProfile } = await import(
-            '../../src/helpers/buildReviewInstructions.js'
-        );
+        const { buildReviewInstructions: buildWithConfiguredProfile } = await loadProfileHelpers();
         await expect(buildWithConfiguredProfile()).resolves.toContain(plaintextProfile);
     });
 
@@ -71,30 +81,29 @@ describe('profile helpers', () => {
         const runnerTemp = await createTemporaryDirectory();
         const profilePath = join(runnerTemp, 'profile.md');
         await writeFile(profilePath, encryptProfile('decrypted trusted profile'));
-        Reflect.deleteProperty(process.env, 'REQUIRE_TRUSTED_REVIEW_PROFILE');
+        process.env.REQUIRE_TRUSTED_REVIEW_PROFILE = 'false';
         process.env.TYPESCRIPT_REVIEW_PROFILE_FORMAT = 'encrypted';
         process.env.TYPESCRIPT_REVIEW_PROFILE_PATH = profilePath;
-        vi.resetModules();
-
-        const { buildReviewInstructions: buildWithConfiguredProfile } = await import(
-            '../../src/helpers/buildReviewInstructions.js'
-        );
+        const { buildReviewInstructions: buildWithConfiguredProfile } = await loadProfileHelpers();
         await expect(buildWithConfiguredProfile()).resolves.toContain('decrypted trusted profile');
     });
 
     it('fails closed when the trusted profile path is not configured', async () => {
         process.env.REQUIRE_TRUSTED_REVIEW_PROFILE = 'true';
         process.env.RUNNER_TEMP = await createTemporaryDirectory();
+        process.env.TYPESCRIPT_REVIEW_PROFILE_FORMAT = 'plaintext';
         Reflect.deleteProperty(process.env, 'TYPESCRIPT_REVIEW_PROFILE_PATH');
 
-        await expect(readProfile()).rejects.toThrow('must be configured inside RUNNER_TEMP');
+        await expect(loadProfileHelpers()).rejects.toThrow('TYPESCRIPT_REVIEW_PROFILE_PATH is required');
     });
 
     it('fails closed when RUNNER_TEMP is missing', async () => {
         process.env.REQUIRE_TRUSTED_REVIEW_PROFILE = 'true';
         process.env.TYPESCRIPT_REVIEW_PROFILE_PATH = '/tmp/review/profile.md';
+        process.env.TYPESCRIPT_REVIEW_PROFILE_FORMAT = 'plaintext';
         Reflect.deleteProperty(process.env, 'RUNNER_TEMP');
 
+        const { readProfile } = await loadProfileHelpers();
         await expect(readProfile()).rejects.toThrow('must be configured inside RUNNER_TEMP');
     });
 
@@ -104,6 +113,7 @@ describe('profile helpers', () => {
         await writeFile(profilePath, 'trusted review profile');
         configureTrustedProfile(runnerTemp, profilePath);
 
+        const { readProfile } = await loadProfileHelpers();
         await expect(readProfile(profilePath)).resolves.toBe('trusted review profile');
     });
 
@@ -115,6 +125,7 @@ describe('profile helpers', () => {
         await writeFile(requestedProfile, 'untrusted profile');
         configureTrustedProfile(runnerTemp, configuredProfile);
 
+        const { readProfile } = await loadProfileHelpers();
         await expect(readProfile(requestedProfile)).rejects.toThrow('must be configured inside RUNNER_TEMP');
     });
 
@@ -127,6 +138,7 @@ describe('profile helpers', () => {
         await symlink(runnerTemp, linkedRunnerTemp);
         configureTrustedProfile(linkedRunnerTemp, profilePath);
 
+        const { readProfile } = await loadProfileHelpers();
         await expect(readProfile(profilePath)).rejects.toThrow('RUNNER_TEMP must be a real directory');
     });
 
@@ -139,6 +151,7 @@ describe('profile helpers', () => {
         await symlink(outsideProfile, linkedProfile);
         configureTrustedProfile(runnerTemp, linkedProfile);
 
+        const { readProfile } = await loadProfileHelpers();
         await expect(readProfile(linkedProfile)).rejects.toThrow('Symbolic links are not allowed');
     });
 
@@ -149,6 +162,7 @@ describe('profile helpers', () => {
         await writeFile(outsideProfile, 'untrusted profile');
         configureTrustedProfile(runnerTemp, outsideProfile);
 
+        const { readProfile } = await loadProfileHelpers();
         await expect(readProfile(outsideProfile)).rejects.toThrow('must resolve inside RUNNER_TEMP');
     });
 
@@ -156,6 +170,7 @@ describe('profile helpers', () => {
         const runnerTemp = await createTemporaryDirectory();
         configureTrustedProfile(runnerTemp, runnerTemp);
 
+        const { readProfile } = await loadProfileHelpers();
         await expect(readProfile(runnerTemp)).rejects.toThrow('must resolve inside RUNNER_TEMP');
     });
 
@@ -165,6 +180,7 @@ describe('profile helpers', () => {
         await mkdir(profilePath);
         configureTrustedProfile(runnerTemp, profilePath);
 
+        const { readProfile } = await loadProfileHelpers();
         await expect(readProfile(profilePath)).rejects.toThrow('must be a regular file');
     });
 });

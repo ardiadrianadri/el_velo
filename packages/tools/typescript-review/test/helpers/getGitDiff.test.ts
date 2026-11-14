@@ -10,8 +10,27 @@ describe('getGitDiff', () => {
     it('gets the TypeScript diff with configured Git arguments', async () => {
         mocks.execAsync.mockResolvedValue({ stdout: diff });
         await expect(getGitDiff()).resolves.toBe(diff);
-        expect(mocks.execAsync).toHaveBeenCalledWith('git', expect.arrayContaining(['diff', '--no-ext-diff', '--find-renames', 'origin/develop...HEAD', '--']), expect.objectContaining({ maxBuffer: 1024 * 1024 }));
+        expect(mocks.execAsync).toHaveBeenCalledWith('git', expect.arrayContaining(['diff', '--no-ext-diff', '--no-textconv', '--find-renames', 'origin/develop...HEAD', '--']), expect.objectContaining({ maxBuffer: 1024 * 1024 }));
     });
+
+    it('uses the pinned base and head commits for pull-request reviews', async () => {
+        const baseSha = 'a'.repeat(40);
+        const headSha = 'b'.repeat(40);
+        process.env.REVIEW_BASE_SHA = baseSha;
+        process.env.REVIEW_HEAD_SHA = headSha;
+        vi.resetModules();
+        const { getGitDiff: getPinnedGitDiff } = await import('../../src/helpers/getGitDiff.js');
+        mocks.execAsync.mockResolvedValue({ stdout: diff });
+
+        await expect(getPinnedGitDiff()).resolves.toBe(diff);
+
+        expect(mocks.execAsync).toHaveBeenCalledWith(
+            'git',
+            expect.arrayContaining([`${baseSha}...${headSha}`]),
+            expect.objectContaining({ maxBuffer: 1024 * 1024 }),
+        );
+    });
+
     it('reports an oversized diff and rethrows other errors', async () => {
         mocks.execAsync.mockRejectedValueOnce(new RangeError('maxBuffer length exceeded'));
         await expect(getGitDiff()).rejects.toThrow('Git diff output exceeds');

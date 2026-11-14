@@ -5,10 +5,33 @@ import type { Schema } from '@cfworker/json-schema';
 
 const defaultProfilePath = join(dirname(fileURLToPath(import.meta.url)), '../../../../.github/ai-review/profiles/typescript-review.md');
 const defaultOpenAIModel = 'gpt-5.6-terra';
+const requireTrustedReviewProfile = process.env.REQUIRE_TRUSTED_REVIEW_PROFILE !== 'false';
 const configuredReviewProfileFormat = process.env.TYPESCRIPT_REVIEW_PROFILE_FORMAT;
-const reviewProfileFormat = configuredReviewProfileFormat ?? (process.env.REQUIRE_TRUSTED_REVIEW_PROFILE === 'true' ? undefined : 'plaintext');
-const profilePath: string = process.env.TYPESCRIPT_REVIEW_PROFILE_PATH ?? defaultProfilePath;
+const configuredProfilePath = process.env.TYPESCRIPT_REVIEW_PROFILE_PATH;
+const reviewProfileFormat = configuredReviewProfileFormat ?? (requireTrustedReviewProfile ? undefined : 'plaintext');
+const profilePath = configuredProfilePath ?? defaultProfilePath;
 const openAIModel: string = process.env.OPENAI_MODEL ?? defaultOpenAIModel;
+const reviewBaseSha = getCommitSha('REVIEW_BASE_SHA');
+const reviewHeadSha = getCommitSha('REVIEW_HEAD_SHA');
+
+if ((reviewBaseSha === undefined) !== (reviewHeadSha === undefined)) {
+    throw new Error('REVIEW_BASE_SHA and REVIEW_HEAD_SHA must be configured together.');
+}
+
+function getCommitSha(environmentKey: string): string | undefined {
+    const sha = process.env[environmentKey];
+    if (sha === undefined) {
+        return undefined;
+    }
+    if (!/^(?:[a-f\d]{40}|[a-f\d]{64})$/i.test(sha)) {
+        throw new Error(`${environmentKey} must be a 40- or 64-character hexadecimal commit SHA.`);
+    }
+    return sha;
+}
+
+if (requireTrustedReviewProfile && !configuredProfilePath) {
+    throw new Error('TYPESCRIPT_REVIEW_PROFILE_PATH is required when trusted review profile mode is enabled.');
+}
 
 if (reviewProfileFormat !== 'plaintext' && reviewProfileFormat !== 'encrypted') {
     throw new Error('TYPESCRIPT_REVIEW_PROFILE_FORMAT must be set to either "plaintext" or "encrypted".');
@@ -38,6 +61,9 @@ export const config = {
     branchToCompare: process.env.BRANCH_TO_COMPARE ?? 'develop',
     openAiApiKey: process.env.OPENAI_API_KEY,
     openAIModel: openAIModel,
+    requireTrustedReviewProfile,
+    reviewBaseSha,
+    reviewHeadSha,
     reviewProfileFormat,
     maxGitDiffBytes: getMaxGitDiffBytes(), // 1 MB
     maxOutputTokens: 16_000,
