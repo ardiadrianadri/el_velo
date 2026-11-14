@@ -1,8 +1,9 @@
-import { join, isAbsolute } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import type { Schema } from '@cfworker/json-schema';
 
-const defaultProfilePath = './.github/ai-review/profiles/typescript-review.md';
+const defaultProfilePath = join(dirname(fileURLToPath(import.meta.url)), '../../../../.github/ai-review/profiles/typescript-review.md');
 const defaultOpenAIModel = 'gpt-5.6-terra';
 const profilePath: string = process.env.TYPESCRIPT_REVIEW_PROFILE_PATH ?? defaultProfilePath;
 const openAIModel: string = process.env.OPENAI_MODEL ?? defaultOpenAIModel;
@@ -30,7 +31,6 @@ export const config = {
     profilePath: isAbsolute(profilePath) ? profilePath : join(process.cwd(), profilePath),
     branchToCompare: process.env.BRANCH_TO_COMPARE ?? 'develop',
     openAiApiKey: process.env.OPENAI_API_KEY,
-    profileEncryptionKey: process.env.TYPESCRIPT_REVIEW_PROFILE_KEY,
     openAIModel: openAIModel,
     maxGitDiffBytes: getMaxGitDiffBytes(), // 1 MB
     maxOutputTokens: 16_000,

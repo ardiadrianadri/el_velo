@@ -5,11 +5,9 @@ const environment = {
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
     GITHUB_API_URL: process.env.GITHUB_API_URL,
     PR_NUMBER: process.env.PR_NUMBER,
-    TYPESCRIPT_REVIEW_PROFILE_KEY: process.env.TYPESCRIPT_REVIEW_PROFILE_KEY,
 };
 
 beforeEach(() => {
-    process.env.TYPESCRIPT_REVIEW_PROFILE_KEY = 'test-profile-key';
     vi.clearAllMocks();
 });
 

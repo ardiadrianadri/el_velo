@@ -12,6 +12,7 @@ import { writeReview } from './writeReview.js';
 export async function main(): Promise<void> {
     const validator = new Validator(reviewSchema);
     const diff = await getGitDiff();
+    console.info(`Analysing ${diff.length} characters of TypeScript diff.`);
     const instructions = await buildReviewInstructions();
     const response = await getAIAnalysis(instructions, buildDiffInput(diff));
     const review = JSON.parse(response) as ReviewSchema;
@@ -20,5 +21,6 @@ export async function main(): Promise<void> {
         console.error('Invalid review schema:', validationResult.errors);
         throw new Error('The AI response does not conform to the expected review schema.');
     }
+    console.info(`The AI review returned ${review.findings.length} finding(s).`);
     await writeReview(sortFindingsBySeverity(review), diff);
 }
