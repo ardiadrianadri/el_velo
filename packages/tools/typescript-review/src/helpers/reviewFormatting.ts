@@ -7,9 +7,9 @@ export function formatFinding(finding: Finding): string {
 
 export function buildReviewBody(review: ReviewSchema, inlineCommentsPublished: boolean, partNumber: number, partCount: number): string {
     const findings = review.findings.length === 0 ? reviewText.noFindings : review.findings.map(formatFinding).join('\n\n---\n\n');
-    const inlineNote = inlineCommentsPublished ? reviewText.inlineCommentsPublished : reviewText.inlineCommentsUnavailable;
+    const inlineNote = review.findings.length === 0 ? '' : inlineCommentsPublished ? reviewText.inlineCommentsPublished : reviewText.inlineCommentsUnavailable;
     const partTitle = partCount > 1 ? ` (${partNumber}/${partCount})` : '';
-    const body = `${reviewText.marker}\n## ${reviewText.title}${partTitle}\n\n${inlineNote}\n\n${findings}`;
+    const body = `${reviewText.marker}\n## ${reviewText.title}${partTitle}\n\n${inlineNote ? `${inlineNote}\n\n` : ''}${findings}`;
     if (body.length > maxReviewBodyLength) {
         throw new Error('A review body exceeds GitHub\'s maximum length.');
     }
