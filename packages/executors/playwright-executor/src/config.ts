@@ -8,19 +8,19 @@ export const CODES: Record<string, Code> = {
         description: 'Command executed successfully.',
     },
     INVALID_CONFIGURATION: {
-        id: '0001',
+        id: '4001',
         description: 'Invalid configuration provided.',
     },
     ENVIRONMENT_TIMEOUT: {
-        id: '0002',
+        id: '4002',
         description: 'Timeout occurred while waiting for environment to start.',
     },
     INVALID_COMMAND: {
-        id: '0003',
+        id: '4003',
         description: 'Invalid command provided.',
     },
     ERROR_EXECUTING_COMMAND: {
-        id: '0004',
+        id: '4004',
         description: 'Error occurred while executing command.',
     },
 };

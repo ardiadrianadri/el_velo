@@ -27,11 +27,11 @@ export const CODES: Record<string, Code> = {
         description: 'Command executed successfully.',
     },
     HTTP_REQUEST_FAILED: {
-        id: '2001',
+        id: '3001',
         description: 'Failed to execute HTTP request.',
     },
     ENVIRONMENT_TIMEOUT: {
-        id: '2002',
+        id: '3002',
         description: 'Timeout occurred while waiting for environment to start.',
     }
 };

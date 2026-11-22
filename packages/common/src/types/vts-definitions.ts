@@ -9,13 +9,13 @@ import type {
 } from './runtime-definition.js';
 
 export enum VTS_RESOURCE_TYPES {
-    STEP = 'step',
-    STEP_GROUP = 'step-group',
-    CONTEXT = 'context',
-    EXPECTATION = 'expectation',
-    TEST_DEFINITION = 'test-definition',
-    TEST_PLAN = 'test-plan',
-    PLUGIN_CONFIG = 'plugin-config'
+    STEP = 'step@1.0.0',
+    STEP_GROUP = 'step-group@1.0.0',
+    CONTEXT = 'context@1.0.0',
+    EXPECTATION = 'expectation@1.0.0',
+    TEST_DEFINITION = 'test-definition@1.0.0',
+    TEST_PLAN = 'test-plan@1.0.0',
+    PLUGIN_CONFIG = 'plugin-config@1.0.0'
 }
 
 export interface VTSResource {
@@ -179,9 +179,8 @@ export interface VTSContext extends VTSResource {
     dockerComposeFilePath: string;
 }
 
-export interface VTSExpectationBase {
-    id: string;
-    description: string;
+export interface VTSExpectationBase extends VTSResource{
+    type: VTS_RESOURCE_TYPES.EXPECTATION;
     property: string;
 }
 

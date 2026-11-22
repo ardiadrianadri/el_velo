@@ -243,7 +243,7 @@ export interface ExpectationBase {
 
 export interface ExpectationWithExpectedValue extends ExpectationBase {
     operator: OPERATORS.EQUALS | OPERATORS.NOT_EQUALS | OPERATORS.CONTAINS | OPERATORS.NOT_CONTAINS | OPERATORS.MATCHES | OPERATORS.GREATER_THAN | OPERATORS.LESS_THAN;
-    expected?: JSONValue;
+    expected: JSONValue;
 }
 
 export interface ExpectationWithNoExpectedValue extends ExpectationBase {
